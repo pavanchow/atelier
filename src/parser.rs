@@ -141,8 +141,13 @@ impl<'t> Parser<'t> {
             );
             None
         } else {
-            let span = self.cur_span();
-            self.error(span, DiagKind::ParseError, format!("expected {what}"));
+            // Anchor the diagnostic at the end of the last consumed token rather
+            // than at the current (following) token. The following token can
+            // belong to the next statement, and pointing at it would make this
+            // statement's diagnostics depend on the next one, which would break
+            // incremental reuse.
+            let at = self.prev_end();
+            self.error(Span::new(at, at), DiagKind::ParseError, format!("expected {what}"));
             None
         }
     }
