@@ -2,11 +2,1396 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>atelier</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier Playground</title>
+<style>
+  /* ---- Base theme (light). Defined FIRST, before the dark @media block. ---- */
+  :root {
+    --bg: #f5f5f7;
+    --panel: #ffffff;
+    --panel-2: #fbfbfd;
+    --text: #1d1d1f;
+    --text-dim: #6e6e73;
+    --border: #e2e2e7;
+    --border-strong: #d0d0d6;
+    --accent: #0071e3;
+    --accent-soft: rgba(0, 113, 227, 0.12);
+    --accent-line: rgba(0, 113, 227, 0.45);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05);
+    --err: #d70015;
+    --err-soft: rgba(215, 0, 21, 0.10);
+    --ok: #1a7f37;
+    --defbox: rgba(0, 113, 227, 0.16);
+    --refbox: rgba(255, 159, 10, 0.22);
+    --flash: rgba(255, 214, 10, 0.55);
+    /* syntax */
+    --syn-kw: #9226a8;
+    --syn-num: #1c7d4d;
+    --syn-comment: #8a8a8e;
+    --syn-ident: #1d1d1f;
+    --syn-op: #b3690f;
+    --syn-punct: #6e6e73;
+    --syn-bool: #0b60c4;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+
+  /* ---- Dark theme. Placed AFTER base body{} and re-declares BOTH the
+          variables AND the body background/color explicitly. ---- */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --panel: #1c1c1e;
+      --panel-2: #161618;
+      --text: #f5f5f7;
+      --text-dim: #98989d;
+      --border: #2c2c2e;
+      --border-strong: #3a3a3c;
+      --accent: #2997ff;
+      --accent-soft: rgba(41, 151, 255, 0.16);
+      --accent-line: rgba(41, 151, 255, 0.55);
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.4);
+      --err: #ff453a;
+      --err-soft: rgba(255, 69, 58, 0.16);
+      --ok: #30d158;
+      --defbox: rgba(41, 151, 255, 0.28);
+      --refbox: rgba(255, 159, 10, 0.30);
+      --flash: rgba(255, 214, 10, 0.45);
+      --syn-kw: #d783ff;
+      --syn-num: #9be0a8;
+      --syn-comment: #7d7d82;
+      --syn-ident: #f5f5f7;
+      --syn-op: #ffb454;
+      --syn-punct: #98989d;
+      --syn-bool: #6ab4ff;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+    }
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 28px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: saturate(180%) blur(12px);
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
+  .brand .tag { font-size: 13px; color: var(--text-dim); }
+  header a.repo {
+    font-size: 14px;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 7px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 980px;
+    transition: background 0.15s ease;
+  }
+  header a.repo:hover { background: var(--accent-soft); }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 28px 64px; }
+
+  .ide {
+    display: grid;
+    grid-template-columns: 200px 1fr 300px;
+    gap: 16px;
+    align-items: stretch;
+  }
+  @media (max-width: 900px) {
+    .ide { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin: 0;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+    font-weight: 600;
+  }
+
+  /* File tree */
+  .files ul { list-style: none; margin: 0; padding: 6px; }
+  .files li {
+    padding: 9px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    transition: background 0.12s ease;
+  }
+  .files li:hover { background: var(--accent-soft); }
+  .files li.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .files li .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); flex: none; }
+  .files li.active .dot { background: var(--accent); }
+
+  /* Editor column */
+  .editor-col { display: flex; flex-direction: column; min-width: 0; }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .toolbar .name { font-size: 13px; color: var(--text-dim); font-family: var(--mono); }
+  .toolbar .spacer { flex: 1; }
+  button.run {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 980px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.05s ease;
+  }
+  button.run:hover { filter: brightness(1.06); }
+  button.run:active { transform: scale(0.97); }
+
+  .editor-wrap {
+    position: relative;
+    height: 380px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 21px;
+    letter-spacing: 0;
+    tab-size: 2;
+    white-space: pre;
+    border: 0;
+  }
+  #overlay { z-index: 0; overflow: hidden; pointer-events: none; }
+  #highlight { z-index: 1; overflow: hidden; pointer-events: none; color: var(--syn-ident); }
+  #editor {
+    z-index: 2;
+    color: transparent;
+    background: transparent;
+    caret-color: var(--accent);
+    resize: none;
+    outline: none;
+    overflow: auto;
+    cursor: text;
+  }
+  #editor::selection { background: var(--accent-soft); }
+
+  .tok-kw { color: var(--syn-kw); font-weight: 600; }
+  .tok-num { color: var(--syn-num); }
+  .tok-comment { color: var(--syn-comment); font-style: italic; }
+  .tok-ident { color: var(--syn-ident); }
+  .tok-op { color: var(--syn-op); }
+  .tok-punct { color: var(--syn-punct); }
+  .tok-bool { color: var(--syn-bool); font-weight: 600; }
+  .tok-err { color: var(--err); text-decoration: underline wavy var(--err); }
+
+  .box { position: absolute; border-radius: 3px; pointer-events: none; }
+  .box.def { background: var(--defbox); box-shadow: 0 0 0 1px var(--accent-line) inset; }
+  .box.ref { background: var(--refbox); }
+  .box.flash { background: var(--flash); transition: opacity 0.7s ease; }
+  .underline {
+    position: absolute;
+    border-bottom: 2px wavy var(--err);
+    text-decoration: none;
+    pointer-events: none;
+  }
+  /* wavy fallback drawn as repeating gradient so it renders everywhere */
+  .underline {
+    background-image: linear-gradient(45deg, transparent 65%, var(--err) 65%, var(--err) 80%, transparent 80%),
+                      linear-gradient(-45deg, transparent 65%, var(--err) 65%, var(--err) 80%, transparent 80%);
+    background-size: 6px 4px;
+    background-position: bottom left;
+    background-repeat: repeat-x;
+    border-bottom: none;
+  }
+
+  /* Right column panels */
+  .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .panel-body { padding: 8px; max-height: 210px; overflow: auto; }
+  .empty { color: var(--text-dim); font-size: 13px; padding: 10px 8px; }
+
+  .diag {
+    display: flex;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    font-size: 13px;
+    cursor: pointer;
+    align-items: flex-start;
+  }
+  .diag:hover { background: var(--err-soft); }
+  .diag .loc { font-family: var(--mono); color: var(--err); font-size: 12px; flex: none; min-width: 54px; }
+  .diag .msg { color: var(--text); }
+  .diag .kind { display: block; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .refrow {
+    display: flex;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    align-items: center;
+  }
+  .refrow:hover { background: var(--accent-soft); }
+  .refrow .loc { font-family: var(--mono); color: var(--accent); font-size: 12px; min-width: 54px; flex: none; }
+  .refrow .badge {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 1px 7px; border-radius: 980px; border: 1px solid var(--border-strong); color: var(--text-dim);
+  }
+  .refrow .badge.decl { color: var(--accent); border-color: var(--accent-line); }
+
+  #symbolInfo { padding: 12px 14px; font-size: 13px; color: var(--text-dim); border-top: 1px solid var(--border); }
+  #symbolInfo b { color: var(--text); }
+
+  /* Output */
+  .output {
+    font-family: var(--mono);
+    font-size: 13px;
+    white-space: pre-wrap;
+    padding: 12px 14px;
+    min-height: 54px;
+    color: var(--text);
+  }
+  .output .line { display: block; }
+  .output .rt-error { color: var(--err); }
+  .output .ok { color: var(--ok); }
+
+  /* Hover popover */
+  #hover {
+    position: fixed;
+    z-index: 50;
+    max-width: 280px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 10px 12px;
+    font-size: 13px;
+    pointer-events: none;
+    display: none;
+  }
+  #hover .h-kind { color: var(--accent); font-weight: 600; }
+  #hover .h-name { font-family: var(--mono); }
+  #hover .h-meta { color: var(--text-dim); margin-top: 4px; font-size: 12px; }
+
+  /* Docs */
+  .docs { margin-top: 28px; }
+  .docs .card { padding: 0; }
+  .docs .inner { padding: 20px 24px; }
+  .docs h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -0.01em; }
+  .docs p { color: var(--text-dim); margin: 8px 0; font-size: 14px; }
+  .docs .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 14px; }
+  .docs .step {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .docs .step h4 { margin: 0 0 6px; font-size: 14px; color: var(--text); }
+  .docs .step p { margin: 0; font-size: 13px; }
+  .docs kbd {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    padding: 1px 6px;
+  }
+  .tour {
+    margin-top: 16px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    font-size: 14px;
+    color: var(--text);
+  }
+  .tour b { color: var(--accent); }
+  footer { text-align: center; color: var(--text-dim); font-size: 12px; padding: 30px 0 10px; }
+</style>
 </head>
 <body>
-<h1>atelier</h1>
-<p>Site coming soon.</p>
-<p><a href="https://github.com/pavanchow/atelier">View repository</a></p>
+<header>
+  <div class="brand">
+    <h1>Atelier</h1>
+    <span class="tag">a dependency-free code-intelligence engine, running in your browser</span>
+  </div>
+  <a class="repo" href="https://github.com/pavanchow/atelier">View on GitHub</a>
+</header>
+
+<main>
+  <div class="ide">
+    <!-- File tree -->
+    <div class="card files">
+      <h2>Files</h2>
+      <ul id="fileList"></ul>
+    </div>
+
+    <!-- Editor -->
+    <div class="card editor-col">
+      <div class="toolbar">
+        <span class="name" id="fileName">fib.at</span>
+        <span class="spacer"></span>
+        <button class="run" id="runBtn">Run</button>
+      </div>
+      <div class="editor-wrap">
+        <div id="overlay" class="layer"></div>
+        <pre id="highlight" class="layer" aria-hidden="true"></pre>
+        <textarea id="editor" class="layer" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+      </div>
+    </div>
+
+    <!-- Side panels -->
+    <div class="side">
+      <div class="card">
+        <h2>Diagnostics</h2>
+        <div class="panel-body" id="diagPanel"></div>
+      </div>
+      <div class="card">
+        <h2>References</h2>
+        <div class="panel-body" id="refPanel"></div>
+        <div id="symbolInfo">Click an identifier in the editor to resolve it.</div>
+      </div>
+      <div class="card">
+        <h2>Output</h2>
+        <div class="output" id="output"><span class="empty">Press Run to evaluate this file.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Docs -->
+  <section class="docs">
+    <div class="card">
+      <div class="inner">
+        <h3>How to use this playground</h3>
+        <p>Atelier analyzes the code live as you type. Everything below runs entirely on this page with no server and no network calls.</p>
+        <div class="grid">
+          <div class="step">
+            <h4>Go to definition</h4>
+            <p>Click any identifier in the editor. The engine resolves it and paints a blue box around its declaration, then scrolls it into view.</p>
+          </div>
+          <div class="step">
+            <h4>Find references</h4>
+            <p>That same click fills the References panel with every occurrence of the symbol, declaration first. Click a row to jump to it.</p>
+          </div>
+          <div class="step">
+            <h4>Hover for info</h4>
+            <p>Move the pointer over an identifier and hold still. A popover shows its kind, its name, where it is defined, and for a function its parameter count.</p>
+          </div>
+          <div class="step">
+            <h4>Run the program</h4>
+            <p>Press <kbd>Run</kbd>. The evaluator prints the value of each top-level expression statement, one per line, or reports a runtime error with its position.</p>
+          </div>
+          <div class="step">
+            <h4>Read diagnostics</h4>
+            <p>Unresolved names, redefinitions, and parse errors get a red wavy underline in the editor and a line in the Diagnostics panel. Click a diagnostic to jump to it.</p>
+          </div>
+          <div class="step">
+            <h4>Switch files</h4>
+            <p>Pick a file on the left. Each sample highlights a different feature, and your edits stay per file while the page is open.</p>
+          </div>
+        </div>
+        <div class="tour">
+          <b>Guided tour.</b> Start on <b>fib.at</b> and press Run to see it print 55. Now click the <b>fib</b> name inside the recursive body and watch the References panel list the declaration plus both recursive calls. Hover over <b>n</b> to confirm it is a parameter of fib. Switch to <b>scopes.at</b> and click the two different <b>base</b> names to see how an inner parameter shadows the top-level binding. Finally open <b>errors.at</b>, where a duplicate <b>count</b> and an undeclared <b>total</b> light up as diagnostics without you doing anything.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Atelier playground. A teaching reimplementation of the Rust engine.</footer>
+</main>
+
+<div id="hover"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   Atelier engine, ported faithfully from the Rust crate in this repo.
+   Layers: lexer -> parser -> resolver -> queries -> evaluator.
+   Offsets are character indices, which equal byte offsets for ASCII source.
+   ========================================================================= */
+
+/* ---------------- Lexer ---------------- */
+const KW = {let:"Let", fn:"Fn", if:"If", else:"Else", true:"True", false:"False"};
+function isIdentStart(c){ return c === "_" || (c >= "A" && c <= "Z") || (c >= "a" && c <= "z"); }
+function isIdentCont(c){ return isIdentStart(c) || (c >= "0" && c <= "9"); }
+function isDigit(c){ return c >= "0" && c <= "9"; }
+
+function lex(text){
+  const out = [];
+  let i = 0;
+  const n = text.length;
+  while (i < n) {
+    const c = text[i];
+    if (c === " " || c === "\t" || c === "\n" || c === "\r") { i++; continue; }
+    if (c === "/" && i + 1 < n && text[i+1] === "/") {
+      i += 2;
+      while (i < n && text[i] !== "\n") i++;
+      continue;
+    }
+    const start = i;
+    let kind;
+    if (isIdentStart(c)) {
+      i++;
+      while (i < n && isIdentCont(text[i])) i++;
+      const word = text.slice(start, i);
+      kind = KW[word] || "Ident";
+    } else if (isDigit(c)) {
+      i++;
+      while (i < n && isDigit(text[i])) i++;
+      kind = "Int";
+    } else {
+      const two = (a,b) => text[i] === a && i + 1 < n && text[i+1] === b;
+      if (two("=","=")) { i += 2; kind = "EqEq"; }
+      else if (two("!","=")) { i += 2; kind = "Ne"; }
+      else if (two("<","=")) { i += 2; kind = "Le"; }
+      else if (two(">","=")) { i += 2; kind = "Ge"; }
+      else {
+        const single = {"(":"LParen",")":"RParen","{":"LBrace","}":"RBrace",
+          ",":"Comma",";":"Semi","=":"Eq","<":"Lt",">":"Gt",
+          "+":"Plus","-":"Minus","*":"Star","/":"Slash","!":"Bang"}[c];
+        if (single) { i++; kind = single; } else { i++; kind = "Error"; }
+      }
+    }
+    out.push({ kind, span: { start, end: i }, text: text.slice(start, i) });
+  }
+  return out;
+}
+
+/* ---------------- Parser ---------------- */
+function diag(span, kind, message){ return { span, severity: "Error", kind, message }; }
+
+class Parser {
+  constructor(tokens){ this.tokens = tokens; this.pos = 0; this.diagnostics = []; this.truncated = false; }
+  atEnd(){ return this.pos >= this.tokens.length; }
+  peek(){ return this.tokens[this.pos]; }
+  peekKind(){ const t = this.peek(); return t ? t.kind : null; }
+  is(kind){ return this.peekKind() === kind; }
+  bump(){ const t = this.tokens[this.pos]; if (t) this.pos++; return t; }
+  eofSpan(){ const last = this.tokens[this.tokens.length-1]; const e = last ? last.span.end : 0; return { start: e, end: e }; }
+  curSpan(){ const t = this.peek(); return t ? t.span : this.eofSpan(); }
+  prevEnd(){ return this.pos > 0 ? this.tokens[this.pos-1].span.end : 0; }
+  error(span, kind, msg){ this.diagnostics.push(diag(span, kind, msg)); }
+
+  expect(kind, what){
+    if (this.is(kind)) { const s = this.curSpan(); this.bump(); return s; }
+    if (this.atEnd()) {
+      this.truncated = true;
+      this.error(this.eofSpan(), "UnexpectedEof", "expected " + what + ", found end of input");
+      return null;
+    }
+    this.error(this.curSpan(), "ParseError", "expected " + what);
+    return null;
+  }
+
+  parseTopStmt(){
+    switch (this.peekKind()) {
+      case "Fn": return this.parseFn();
+      case "Let": return this.parseLet();
+      default: return this.parseExprStmtTop();
+    }
+  }
+
+  parseFn(){
+    const start = this.curSpan().start;
+    this.bump(); // fn
+    const name = this.parseIdentOrMissing("a function name");
+    this.expect("LParen", "`(`");
+    const params = [];
+    if (!this.is("RParen")) {
+      let id;
+      while ((id = this.parseIdent("a parameter name"))) {
+        params.push(id);
+        if (this.is("Comma")) this.bump(); else break;
+      }
+    }
+    this.expect("RParen", "`)`");
+    const body = this.parseBlock();
+    return { kind: { t: "Fn", name, params, body }, span: { start, end: body.span.end } };
+  }
+
+  parseLet(){
+    const start = this.curSpan().start;
+    this.bump(); // let
+    const name = this.parseIdentOrMissing("a variable name");
+    this.expect("Eq", "`=`");
+    const value = this.parseExpr();
+    const semi = this.expect("Semi", "`;`");
+    const end = semi ? semi.end : value.span.end;
+    return { kind: { t: "Let", name, value }, span: { start, end } };
+  }
+
+  parseExprStmtTop(){
+    const expr = this.parseExpr();
+    const start = expr.span.start;
+    const semi = this.expect("Semi", "`;`");
+    const end = semi ? semi.end : expr.span.end;
+    if (!semi) this.recoverToStmtBoundary();
+    return { kind: { t: "Expr", expr }, span: { start, end } };
+  }
+
+  recoverToStmtBoundary(){
+    for (;;) {
+      const k = this.peekKind();
+      if (k === null) { this.truncated = true; break; }
+      if (k === "Semi") { this.bump(); break; }
+      if (k === "Fn" || k === "Let" || k === "RBrace") break;
+      this.bump();
+    }
+  }
+
+  parseIdentOrMissing(what){
+    if (this.is("Ident")) { const t = this.bump(); return { name: t.text, span: t.span }; }
+    this.expect("Ident", what);
+    const at = this.curSpan().start;
+    return { name: "", span: { start: at, end: at } };
+  }
+
+  parseIdent(what){
+    if (this.is("Ident")) { const t = this.bump(); return { name: t.text, span: t.span }; }
+    this.expect("Ident", what);
+    return null;
+  }
+
+  parseBlock(){
+    const open = this.expect("LBrace", "`{`");
+    const start = open ? open.start : this.curSpan().start;
+    const stmts = [];
+    let tail = null;
+    for (;;) {
+      if (this.atEnd()) { this.truncated = true; break; }
+      if (this.is("RBrace")) break;
+      const k = this.peekKind();
+      if (k === "Fn") { const s = this.parseFn(); if (s) stmts.push(s); }
+      else if (k === "Let") { const s = this.parseLet(); if (s) stmts.push(s); }
+      else {
+        const before = this.pos;
+        const expr = this.parseExpr();
+        if (this.is("Semi")) {
+          const semi = this.curSpan();
+          this.bump();
+          stmts.push({ kind: { t: "Expr", expr }, span: { start: expr.span.start, end: semi.end } });
+        } else if (this.is("RBrace") || this.atEnd()) {
+          tail = expr;
+          break;
+        } else {
+          this.error(this.curSpan(), "ParseError", "expected `;` or `}`");
+          this.recoverToStmtBoundary();
+          stmts.push({ kind: { t: "Expr", expr }, span: expr.span });
+        }
+        if (this.pos === before) { this.error(this.curSpan(), "ParseError", "unexpected token"); this.bump(); }
+      }
+    }
+    const close = this.expect("RBrace", "`}`");
+    let end;
+    if (close) end = close.end;
+    else if (tail) end = tail.span.end;
+    else if (stmts.length) end = stmts[stmts.length-1].span.end;
+    else end = start;
+    return { stmts, tail, span: { start, end } };
+  }
+
+  parseExpr(){ return this.parseEquality(); }
+
+  parseEquality(){
+    let lhs = this.parseComparison();
+    for (;;) {
+      const k = this.peekKind();
+      const op = k === "EqEq" ? "Eq" : k === "Ne" ? "Ne" : null;
+      if (!op) break;
+      this.bump();
+      lhs = binary(lhs, op, this.parseComparison());
+    }
+    return lhs;
+  }
+  parseComparison(){
+    let lhs = this.parseAdditive();
+    for (;;) {
+      const k = this.peekKind();
+      const op = k === "Lt" ? "Lt" : k === "Le" ? "Le" : k === "Gt" ? "Gt" : k === "Ge" ? "Ge" : null;
+      if (!op) break;
+      this.bump();
+      lhs = binary(lhs, op, this.parseAdditive());
+    }
+    return lhs;
+  }
+  parseAdditive(){
+    let lhs = this.parseMultiplicative();
+    for (;;) {
+      const k = this.peekKind();
+      const op = k === "Plus" ? "Add" : k === "Minus" ? "Sub" : null;
+      if (!op) break;
+      this.bump();
+      lhs = binary(lhs, op, this.parseMultiplicative());
+    }
+    return lhs;
+  }
+  parseMultiplicative(){
+    let lhs = this.parseUnary();
+    for (;;) {
+      const k = this.peekKind();
+      const op = k === "Star" ? "Mul" : k === "Slash" ? "Div" : null;
+      if (!op) break;
+      this.bump();
+      lhs = binary(lhs, op, this.parseUnary());
+    }
+    return lhs;
+  }
+  parseUnary(){
+    const k = this.peekKind();
+    const op = k === "Minus" ? "Neg" : k === "Bang" ? "Not" : null;
+    if (op) {
+      const start = this.curSpan().start;
+      this.bump();
+      const expr = this.parseUnary();
+      return { kind: { t: "Unary", op, expr }, span: { start, end: expr.span.end } };
+    }
+    return this.parsePostfix();
+  }
+  parsePostfix(){
+    let expr = this.parsePrimary();
+    while (this.is("LParen")) {
+      this.bump();
+      const args = [];
+      if (!this.is("RParen")) {
+        for (;;) {
+          args.push(this.parseExpr());
+          if (this.is("Comma")) this.bump(); else break;
+        }
+      }
+      const close = this.expect("RParen", "`)`");
+      const end = close ? close.end : this.prevEnd();
+      expr = { kind: { t: "Call", callee: expr, args }, span: { start: expr.span.start, end } };
+    }
+    return expr;
+  }
+  parsePrimary(){
+    switch (this.peekKind()) {
+      case "Int": { const t = this.bump(); const v = parseInt(t.text, 10); return { kind: { t: "Int", value: Number.isNaN(v) ? 0 : v }, span: t.span }; }
+      case "True": { const t = this.bump(); return { kind: { t: "Bool", value: true }, span: t.span }; }
+      case "False": { const t = this.bump(); return { kind: { t: "Bool", value: false }, span: t.span }; }
+      case "Ident": { const t = this.bump(); return { kind: { t: "Name", name: t.text }, span: t.span }; }
+      case "LParen": {
+        const start = this.curSpan().start;
+        this.bump();
+        const inner = this.parseExpr();
+        const close = this.expect("RParen", "`)`");
+        const end = close ? close.end : inner.span.end;
+        return { kind: { t: "Paren", expr: inner }, span: { start, end } };
+      }
+      case "LBrace": { const block = this.parseBlock(); return { kind: { t: "Block", block }, span: block.span }; }
+      case "If": return this.parseIf();
+      default: {
+        if (this.atEnd()) {
+          this.truncated = true;
+          this.error(this.eofSpan(), "UnexpectedEof", "expected an expression");
+          return { kind: { t: "Error" }, span: this.eofSpan() };
+        }
+        const span = this.curSpan();
+        this.error(span, "ParseError", "expected an expression");
+        this.bump();
+        return { kind: { t: "Error" }, span };
+      }
+    }
+  }
+  parseIf(){
+    const start = this.curSpan().start;
+    this.bump(); // if
+    const cond = this.parseExpr();
+    const thenBlock = this.parseBlock();
+    let end = thenBlock.span.end;
+    let elseBlock = null;
+    if (this.is("Else")) { this.bump(); elseBlock = this.parseBlock(); end = elseBlock.span.end; }
+    return { kind: { t: "If", cond, thenBlock, elseBlock }, span: { start, end } };
+  }
+}
+
+function binary(lhs, op, rhs){
+  return { kind: { t: "Binary", op, lhs, rhs }, span: { start: lhs.span.start, end: rhs.span.end } };
+}
+
+function parseTokens(tokens){
+  const p = new Parser(tokens);
+  const program = [];
+  while (!p.atEnd()) {
+    const tokStart = p.pos;
+    const stmt = p.parseTopStmt();
+    if (p.pos === tokStart) { p.error(p.curSpan(), "ParseError", "unexpected token"); p.bump(); }
+    if (stmt) program.push(stmt);
+  }
+  return { program, diagnostics: p.diagnostics, truncated: p.truncated };
+}
+
+/* ---------------- Resolver ---------------- */
+function describeKind(k){ return k === "Fn" ? "function" : k === "Param" ? "parameter" : "variable"; }
+
+class Resolver {
+  constructor(){ this.bindings = []; this.occurrences = []; this.diagnostics = []; this.stack = []; }
+  addBinding(name, kind, declSpan, arity){
+    const id = this.bindings.length;
+    this.bindings.push({ name, kind, declSpan, arity });
+    this.occurrences.push({ span: declSpan, name, binding: id, isDecl: true });
+    return id;
+  }
+  frameHas(name){
+    const f = this.stack[this.stack.length-1];
+    return f.fns.some(e => e[0] === name) || f.seq.some(e => e[0] === name);
+  }
+  redef(name, span){ this.diagnostics.push(diag(span, "Redefinition", "`" + name + "` is already defined in this scope")); }
+  resolveName(name){
+    for (let s = this.stack.length - 1; s >= 0; s--) {
+      const f = this.stack[s];
+      for (let i = f.seq.length - 1; i >= 0; i--) if (f.seq[i][0] === name) return f.seq[i][1];
+      for (let i = 0; i < f.fns.length; i++) if (f.fns[i][0] === name) return f.fns[i][1];
+    }
+    return null;
+  }
+  scope(stmts, tail, params){
+    this.stack.push({ fns: [], seq: [] });
+    for (const p of params) {
+      if (this.frameHas(p.name)) this.redef(p.name, p.span);
+      const id = this.addBinding(p.name, "Param", p.span, null);
+      this.stack[this.stack.length-1].seq.push([p.name, id]);
+    }
+    for (const stmt of stmts) {
+      if (stmt.kind.t === "Fn") {
+        const f = stmt.kind;
+        if (this.frameHas(f.name.name)) this.redef(f.name.name, f.name.span);
+        const id = this.addBinding(f.name.name, "Fn", f.name.span, f.params.length);
+        this.stack[this.stack.length-1].fns.push([f.name.name, id]);
+      }
+    }
+    for (const stmt of stmts) {
+      const k = stmt.kind;
+      if (k.t === "Let") {
+        this.resolveExpr(k.value);
+        if (this.frameHas(k.name.name)) this.redef(k.name.name, k.name.span);
+        const id = this.addBinding(k.name.name, "Let", k.name.span, null);
+        this.stack[this.stack.length-1].seq.push([k.name.name, id]);
+      } else if (k.t === "Fn") {
+        this.scopeBlock(k.body, k.params);
+      } else if (k.t === "Expr") {
+        this.resolveExpr(k.expr);
+      }
+    }
+    for (const e of tail) this.resolveExpr(e);
+    this.stack.pop();
+  }
+  scopeBlock(block, params){
+    this.scope(block.stmts, block.tail ? [block.tail] : [], params);
+  }
+  resolveExpr(expr){
+    const k = expr.kind;
+    switch (k.t) {
+      case "Int": case "Bool": case "Error": break;
+      case "Name": {
+        const binding = this.resolveName(k.name);
+        if (binding === null) this.diagnostics.push(diag(expr.span, "UnresolvedName", "cannot find `" + k.name + "` in this scope"));
+        this.occurrences.push({ span: expr.span, name: k.name, binding, isDecl: false });
+        break;
+      }
+      case "Unary": this.resolveExpr(k.expr); break;
+      case "Binary": this.resolveExpr(k.lhs); this.resolveExpr(k.rhs); break;
+      case "Call": this.resolveExpr(k.callee); for (const a of k.args) this.resolveExpr(a); break;
+      case "If":
+        this.resolveExpr(k.cond);
+        this.scopeBlock(k.thenBlock, []);
+        if (k.elseBlock) this.scopeBlock(k.elseBlock, []);
+        break;
+      case "Block": this.scopeBlock(k.block, []); break;
+      case "Paren": this.resolveExpr(k.expr); break;
+    }
+  }
+}
+
+const DIAG_ORDER = { ParseError: 0, UnexpectedEof: 1, UnresolvedName: 2, Redefinition: 3 };
+function sortDiagnostics(list){
+  return list.slice().sort((a, b) =>
+    a.span.start - b.span.start ||
+    a.span.end - b.span.end ||
+    DIAG_ORDER[a.kind] - DIAG_ORDER[b.kind] ||
+    (a.message < b.message ? -1 : a.message > b.message ? 1 : 0));
+}
+
+function resolve(program){
+  const r = new Resolver();
+  r.scope(program, [], []);
+  r.occurrences.sort((a, b) => a.span.start - b.span.start || a.span.end - b.span.end || (a.isDecl === b.isDecl ? 0 : a.isDecl ? 1 : -1));
+  return { bindings: r.bindings, occurrences: r.occurrences, diagnostics: sortDiagnostics(r.diagnostics) };
+}
+
+/* ---------------- Analysis + queries ---------------- */
+function analyze(text){
+  const tokens = lex(text);
+  const parsed = parseTokens(tokens);
+  const symbols = resolve(parsed.program);
+  const diagnostics = sortDiagnostics(parsed.diagnostics.concat(symbols.diagnostics));
+  return { text, program: parsed.program, symbols, diagnostics };
+}
+
+function spanContains(s, pos){ return pos >= s.start && pos < s.end; }
+function spanTouches(s, pos){ return pos >= s.start && pos <= s.end; }
+
+function occurrenceAt(analysis, pos){
+  const occ = analysis.symbols.occurrences;
+  return occ.find(o => spanContains(o.span, pos)) || occ.find(o => spanTouches(o.span, pos)) || null;
+}
+function goToDefinition(analysis, pos){
+  const o = occurrenceAt(analysis, pos);
+  if (!o || o.binding === null) return null;
+  const b = analysis.symbols.bindings[o.binding];
+  return { span: b.declSpan, name: b.name, kind: b.kind };
+}
+function findReferences(analysis, pos){
+  const o = occurrenceAt(analysis, pos);
+  if (!o || o.binding === null) return [];
+  return analysis.symbols.occurrences
+    .filter(x => x.binding === o.binding)
+    .map(x => ({ span: x.span, isDecl: x.isDecl }))
+    .sort((a, b) => a.span.start - b.span.start || a.span.end - b.span.end);
+}
+function hoverAt(analysis, pos){
+  const o = occurrenceAt(analysis, pos);
+  if (!o || o.binding === null) return null;
+  const b = analysis.symbols.bindings[o.binding];
+  return { name: b.name, kind: b.kind, declSpan: b.declSpan, arity: b.arity };
+}
+
+/* ---------------- Evaluator ---------------- */
+const UNIT = { t: "Unit" };
+function valInt(n){ return { t: "Int", v: n }; }
+function valBool(b){ return { t: "Bool", v: b }; }
+function valToString(v){ return v.t === "Int" ? String(v.v) : v.t === "Bool" ? String(v.v) : "()"; }
+class RunError { constructor(span, message){ this.span = span; this.message = message; } }
+
+function runProgram(program){
+  const globalsFn = new Map();
+  for (const stmt of program) if (stmt.kind.t === "Fn") globalsFn.set(stmt.kind.name.name, stmt.kind);
+  const globalsVar = new Map();
+  const lines = [];
+
+  function lookupVar(scopes, name){
+    for (let i = scopes.length - 1; i >= 0; i--) if (scopes[i].has(name)) return scopes[i].get(name);
+    if (globalsVar.has(name)) return globalsVar.get(name);
+    return null;
+  }
+  function evalBlock(block, scopes){
+    scopes.push(new Map());
+    try {
+      for (const stmt of block.stmts) {
+        const k = stmt.kind;
+        if (k.t === "Fn") continue;
+        if (k.t === "Let") { const v = evalExpr(k.value, scopes); scopes[scopes.length-1].set(k.name.name, v); }
+        else if (k.t === "Expr") { evalExpr(k.expr, scopes); }
+      }
+      return block.tail ? evalExpr(block.tail, scopes) : UNIT;
+    } finally { scopes.pop(); }
+  }
+  function valuesEq(a, b){
+    if (a.t === "Int" && b.t === "Int") return a.v === b.v;
+    if (a.t === "Bool" && b.t === "Bool") return a.v === b.v;
+    if (a.t === "Unit" && b.t === "Unit") return true;
+    return false;
+  }
+  function evalBinary(op, l, r, span){
+    const arith = f => {
+      if (l.t === "Int" && r.t === "Int") {
+        const res = f(l.v, r.v);
+        if (res === null) throw new RunError(span, "arithmetic error");
+        return valInt(res);
+      }
+      throw new RunError(span, "arithmetic requires integers");
+    };
+    switch (op) {
+      case "Add": return arith((a,b) => a + b);
+      case "Sub": return arith((a,b) => a - b);
+      case "Mul": return arith((a,b) => a * b);
+      case "Div": return arith((a,b) => b === 0 ? null : Math.trunc(a / b));
+      case "Eq": return valBool(valuesEq(l, r));
+      case "Ne": return valBool(!valuesEq(l, r));
+      case "Lt": case "Le": case "Gt": case "Ge":
+        if (l.t === "Int" && r.t === "Int") {
+          const a = l.v, b = r.v;
+          return valBool(op === "Lt" ? a < b : op === "Le" ? a <= b : op === "Gt" ? a > b : a >= b);
+        }
+        throw new RunError(span, "comparison requires integers");
+    }
+  }
+  function evalExpr(expr, scopes){
+    const k = expr.kind;
+    switch (k.t) {
+      case "Int": return valInt(k.value);
+      case "Bool": return valBool(k.value);
+      case "Error": throw new RunError(expr.span, "cannot evaluate a syntax error");
+      case "Name": {
+        const v = lookupVar(scopes, k.name);
+        if (v === null) throw new RunError(expr.span, "`" + k.name + "` is not a value in scope");
+        return v;
+      }
+      case "Paren": return evalExpr(k.expr, scopes);
+      case "Unary": {
+        const v = evalExpr(k.expr, scopes);
+        if (k.op === "Neg" && v.t === "Int") return valInt(-v.v);
+        if (k.op === "Not" && v.t === "Bool") return valBool(!v.v);
+        throw new RunError(expr.span, "type error in unary operation");
+      }
+      case "Binary": return evalBinary(k.op, evalExpr(k.lhs, scopes), evalExpr(k.rhs, scopes), expr.span);
+      case "Block": return evalBlock(k.block, scopes);
+      case "If": {
+        const c = evalExpr(k.cond, scopes);
+        if (c.t !== "Bool") throw new RunError(k.cond.span, "if condition must be a boolean");
+        if (c.v) return evalBlock(k.thenBlock, scopes);
+        return k.elseBlock ? evalBlock(k.elseBlock, scopes) : UNIT;
+      }
+      case "Call": {
+        if (k.callee.kind.t !== "Name") throw new RunError(k.callee.span, "call target must be a function name");
+        const name = k.callee.kind.name;
+        const func = globalsFn.get(name);
+        if (!func) throw new RunError(k.callee.span, "`" + name + "` is not a function");
+        if (func.params.length !== k.args.length)
+          throw new RunError(expr.span, "`" + name + "` expects " + func.params.length + " arguments, got " + k.args.length);
+        const frame = new Map();
+        for (let i = 0; i < func.params.length; i++) frame.set(func.params[i].name, evalExpr(k.args[i], scopes));
+        return evalBlock(func.body, [frame]);
+      }
+    }
+  }
+
+  try {
+    for (const stmt of program) {
+      const k = stmt.kind;
+      if (k.t === "Fn") continue;
+      if (k.t === "Let") { globalsVar.set(k.name.name, evalExpr(k.value, [])); }
+      else if (k.t === "Expr") { const v = evalExpr(k.expr, []); if (v.t !== "Unit") lines.push(valToString(v)); }
+    }
+  } catch (e) {
+    if (e instanceof RunError) return { error: e };
+    throw e;
+  }
+  return { lines };
+}
+
+/* ---------------- line/col helpers ---------------- */
+function offsetToLineCol(text, off){
+  off = Math.min(off, text.length);
+  let line = 1, col = 1;
+  for (let i = 0; i < off; i++) { if (text[i] === "\n") { line++; col = 1; } else col++; }
+  return { line, col };
+}
+function lineColZeroToOffset(text, line0, col0){
+  const lines = text.split("\n");
+  line0 = Math.max(0, Math.min(line0, lines.length - 1));
+  const lineLen = lines[line0].length;
+  col0 = Math.max(0, Math.min(col0, lineLen));
+  let off = 0;
+  for (let i = 0; i < line0; i++) off += lines[i].length + 1;
+  return off + col0;
+}
+
+/* ---------------- Syntax highlighting segments ---------------- */
+function escapeHtml(s){ return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function highlightHtml(text){
+  const n = text.length;
+  let i = 0, out = "";
+  const push = (cls, s) => { out += cls ? '<span class="' + cls + '">' + escapeHtml(s) + "</span>" : escapeHtml(s); };
+  while (i < n) {
+    const c = text[i];
+    if (c === " " || c === "\t" || c === "\n" || c === "\r") { let j = i; while (j < n && (text[j]===" "||text[j]==="\t"||text[j]==="\n"||text[j]==="\r")) j++; push(null, text.slice(i, j)); i = j; continue; }
+    if (c === "/" && i + 1 < n && text[i+1] === "/") { let j = i; while (j < n && text[j] !== "\n") j++; push("tok-comment", text.slice(i, j)); i = j; continue; }
+    if (isIdentStart(c)) {
+      let j = i + 1; while (j < n && isIdentCont(text[j])) j++;
+      const word = text.slice(i, j);
+      let cls = "tok-ident";
+      if (word === "let" || word === "fn" || word === "if" || word === "else") cls = "tok-kw";
+      else if (word === "true" || word === "false") cls = "tok-bool";
+      push(cls, word); i = j; continue;
+    }
+    if (isDigit(c)) { let j = i + 1; while (j < n && isDigit(text[j])) j++; push("tok-num", text.slice(i, j)); i = j; continue; }
+    const two = text.slice(i, i + 2);
+    if (two === "==" || two === "!=" || two === "<=" || two === ">=") { push("tok-op", two); i += 2; continue; }
+    if ("+-*/=<>!".includes(c)) { push("tok-op", c); i++; continue; }
+    if ("(){},;".includes(c)) { push("tok-punct", c); i++; continue; }
+    push("tok-err", c); i++;
+  }
+  // trailing newline so the highlight layer keeps the same trailing line box as the textarea
+  return out + "\n";
+}
+
+/* =========================================================================
+   UI wiring
+   ========================================================================= */
+const SAMPLES = {
+  "fib.at":
+`// Recursive Fibonacci.
+// Click the name fib below to see go-to-definition and references.
+fn fib(n) {
+  if n < 2 {
+    n
+  } else {
+    fib(n - 1) + fib(n - 2)
+  }
+}
+
+fib(10);
+`,
+  "scopes.at":
+`// Scopes and shadowing.
+// Click each base to see which declaration it resolves to.
+let base = 10;
+
+fn scale(x) {
+  let factor = 3;
+  x * factor + base
+}
+
+fn shadow(base) {
+  // this parameter base shadows the top-level base
+  base + 1
+}
+
+let result = scale(4);
+result;
+shadow(100);
+`,
+  "errors.at":
+`// This file has two deliberate mistakes.
+// Watch the Diagnostics panel and the red underlines.
+let count = 1;
+let count = 2;
+
+fn total_of(a, b) {
+  a + b + missing
+}
+
+total_of(count, 5);
+`
+};
+
+const els = {
+  fileList: document.getElementById("fileList"),
+  fileName: document.getElementById("fileName"),
+  editor: document.getElementById("editor"),
+  highlight: document.getElementById("highlight"),
+  overlay: document.getElementById("overlay"),
+  diagPanel: document.getElementById("diagPanel"),
+  refPanel: document.getElementById("refPanel"),
+  symbolInfo: document.getElementById("symbolInfo"),
+  output: document.getElementById("output"),
+  runBtn: document.getElementById("runBtn"),
+  hover: document.getElementById("hover")
+};
+
+const fileText = {};
+for (const name in SAMPLES) fileText[name] = SAMPLES[name];
+let currentFile = "fib.at";
+let analysis = null;
+let activeBindingSpans = []; // {span, cls} for def/ref highlight boxes
+let metrics = { charW: 8.4, lineH: 21, padL: 16, padT: 14 };
+
+function measure(){
+  const probe = document.createElement("span");
+  probe.style.font = getComputedStyle(els.highlight).font;
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  probe.style.whiteSpace = "pre";
+  probe.textContent = "0000000000";
+  document.body.appendChild(probe);
+  metrics.charW = probe.getBoundingClientRect().width / 10;
+  document.body.removeChild(probe);
+  const cs = getComputedStyle(els.editor);
+  metrics.lineH = parseFloat(cs.lineHeight);
+  metrics.padL = parseFloat(cs.paddingLeft);
+  metrics.padT = parseFloat(cs.paddingTop);
+}
+
+function renderFileList(){
+  els.fileList.innerHTML = "";
+  for (const name in SAMPLES) {
+    const li = document.createElement("li");
+    li.className = name === currentFile ? "active" : "";
+    li.innerHTML = '<span class="dot"></span>' + name;
+    li.addEventListener("click", () => selectFile(name));
+    els.fileList.appendChild(li);
+  }
+}
+
+function selectFile(name){
+  fileText[currentFile] = els.editor.value;
+  currentFile = name;
+  els.fileName.textContent = name;
+  els.editor.value = fileText[name];
+  activeBindingSpans = [];
+  els.output.innerHTML = '<span class="empty">Press Run to evaluate this file.</span>';
+  els.refPanel.innerHTML = "";
+  els.symbolInfo.textContent = "Click an identifier in the editor to resolve it.";
+  renderFileList();
+  reanalyze();
+  els.editor.scrollTop = 0;
+  syncScroll();
+}
+
+function reanalyze(){
+  const text = els.editor.value;
+  try {
+    analysis = analyze(text);
+  } catch (e) {
+    // Never let a transient malformed edit throw to the console.
+    analysis = { text, program: [], symbols: { bindings: [], occurrences: [], diagnostics: [] }, diagnostics: [] };
+  }
+  els.highlight.innerHTML = highlightHtml(text);
+  renderDiagnostics();
+  rebuildOverlay();
+}
+
+function renderDiagnostics(){
+  const list = analysis.diagnostics;
+  if (!list.length) {
+    els.diagPanel.innerHTML = '<div class="empty">No problems found.</div>';
+    return;
+  }
+  els.diagPanel.innerHTML = "";
+  for (const d of list) {
+    const lc = offsetToLineCol(analysis.text, d.span.start);
+    const row = document.createElement("div");
+    row.className = "diag";
+    row.innerHTML =
+      '<span class="loc">' + lc.line + ":" + lc.col + '</span>' +
+      '<span class="msg">' + escapeHtml(d.message) + '<span class="kind">' + d.kind + "</span></span>";
+    row.addEventListener("click", () => jumpTo(d.span, "flash"));
+    els.diagPanel.appendChild(row);
+  }
+}
+
+/* offset -> pixel box (relative to editor content, before scroll) */
+function offsetToXY(off){
+  const lc = offsetToLineCol(analysis.text, off);
+  return { x: metrics.padL + (lc.col - 1) * metrics.charW, y: metrics.padT + (lc.line - 1) * metrics.lineH };
+}
+
+function splitSpanByLine(span){
+  const text = analysis.text;
+  const parts = [];
+  const startLC = offsetToLineCol(text, span.start);
+  const endLC = offsetToLineCol(text, span.end);
+  const lines = text.split("\n");
+  for (let ln = startLC.line; ln <= endLC.line; ln++) {
+    const col0 = ln === startLC.line ? startLC.col - 1 : 0;
+    const colEnd = ln === endLC.line ? endLC.col - 1 : lines[ln - 1].length;
+    const len = Math.max(colEnd - col0, ln === startLC.line && ln === endLC.line ? 0 : 0);
+    parts.push({ line: ln, col: col0, len: Math.max(len, 0) });
+  }
+  return parts;
+}
+
+function rebuildOverlay(){
+  const sl = els.editor.scrollLeft, st = els.editor.scrollTop;
+  let html = "";
+  // diagnostic underlines
+  for (const d of analysis.diagnostics) {
+    for (const p of splitSpanByLine(d.span)) {
+      const w = Math.max(p.len, 1) * metrics.charW;
+      const x = metrics.padL + p.col * metrics.charW - sl;
+      const y = metrics.padT + (p.line - 1) * metrics.lineH - st + metrics.lineH - 3;
+      html += '<div class="underline" style="left:' + x + "px;top:" + y + "px;width:" + w + 'px;height:4px;"></div>';
+    }
+  }
+  // definition / reference highlight boxes
+  for (const item of activeBindingSpans) {
+    for (const p of splitSpanByLine(item.span)) {
+      const w = Math.max(p.len, 1) * metrics.charW;
+      const x = metrics.padL + p.col * metrics.charW - sl;
+      const y = metrics.padT + (p.line - 1) * metrics.lineH - st;
+      html += '<div class="box ' + item.cls + '" style="left:' + x + "px;top:" + y + "px;width:" + w + "px;height:" + metrics.lineH + 'px;"></div>';
+    }
+  }
+  els.overlay.innerHTML = html;
+}
+
+function syncScroll(){
+  els.highlight.scrollTop = els.editor.scrollTop;
+  els.highlight.scrollLeft = els.editor.scrollLeft;
+  rebuildOverlay();
+}
+
+/* map a mouse event to a character offset using the monospace grid */
+function eventToOffset(e){
+  const rect = els.editor.getBoundingClientRect();
+  const relX = e.clientX - rect.left - metrics.padL + els.editor.scrollLeft;
+  const relY = e.clientY - rect.top - metrics.padT + els.editor.scrollTop;
+  const line0 = Math.floor(relY / metrics.lineH);
+  const col0 = Math.floor(relX / metrics.charW + 0.0);
+  return lineColZeroToOffset(els.editor.value, line0, col0);
+}
+
+function jumpTo(span, mode){
+  const lc = offsetToLineCol(els.editor.value, span.start);
+  const targetTop = (lc.line - 1) * metrics.lineH;
+  const view = els.editor.clientHeight;
+  if (targetTop < els.editor.scrollTop || targetTop > els.editor.scrollTop + view - metrics.lineH) {
+    els.editor.scrollTop = Math.max(0, targetTop - view / 2);
+  }
+  els.editor.focus();
+  els.editor.setSelectionRange(span.start, span.end);
+  syncScroll();
+  if (mode === "flash") flashSpan(span);
+}
+
+function flashSpan(span){
+  const p = splitSpanByLine(span)[0];
+  if (!p) return;
+  const el = document.createElement("div");
+  el.className = "box flash";
+  const w = Math.max(p.len, 1) * metrics.charW;
+  el.style.left = (metrics.padL + p.col * metrics.charW - els.editor.scrollLeft) + "px";
+  el.style.top = (metrics.padT + (p.line - 1) * metrics.lineH - els.editor.scrollTop) + "px";
+  el.style.width = w + "px";
+  el.style.height = metrics.lineH + "px";
+  els.overlay.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = "0"; });
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 750);
+}
+
+function onEditorClick(){
+  const off = els.editor.selectionStart;
+  const def = goToDefinition(analysis, off);
+  const refs = findReferences(analysis, off);
+  if (!def) {
+    activeBindingSpans = [];
+    els.refPanel.innerHTML = '<div class="empty">No symbol at the caret. Click an identifier.</div>';
+    els.symbolInfo.textContent = "Click an identifier in the editor to resolve it.";
+    rebuildOverlay();
+    return;
+  }
+  activeBindingSpans = [{ span: def.span, cls: "def" }];
+  for (const r of refs) if (!(r.span.start === def.span.start && r.span.end === def.span.end)) activeBindingSpans.push({ span: r.span, cls: "ref" });
+  rebuildOverlay();
+  renderReferences(def, refs);
+  const dl = offsetToLineCol(els.editor.value, def.span.start);
+  els.symbolInfo.innerHTML = "<b>" + escapeHtml(def.name) + "</b> is a " + describeKind(def.kind) +
+    ", defined at line " + dl.line + ", column " + dl.col + ".";
+  jumpTo(def.span, "flash");
+}
+
+function renderReferences(def, refs){
+  els.refPanel.innerHTML = "";
+  if (!refs.length) { els.refPanel.innerHTML = '<div class="empty">No references.</div>'; return; }
+  for (const r of refs) {
+    const lc = offsetToLineCol(els.editor.value, r.span.start);
+    const row = document.createElement("div");
+    row.className = "refrow";
+    row.innerHTML =
+      '<span class="loc">' + lc.line + ":" + lc.col + "</span>" +
+      "<span>" + escapeHtml(def.name) + "</span>" +
+      '<span class="badge ' + (r.isDecl ? "decl" : "") + '">' + (r.isDecl ? "declaration" : "use") + "</span>";
+    row.addEventListener("click", () => jumpTo(r.span, "flash"));
+    els.refPanel.appendChild(row);
+  }
+}
+
+/* Hover popover */
+let hoverTimer = null;
+function onEditorMove(e){
+  clearTimeout(hoverTimer);
+  const x = e.clientX, y = e.clientY;
+  hoverTimer = setTimeout(() => {
+    let off;
+    try { off = eventToOffset(e); } catch (_) { hideHover(); return; }
+    const h = hoverAt(analysis, off);
+    if (!h) { hideHover(); return; }
+    const dl = offsetToLineCol(els.editor.value, h.declSpan.start);
+    let meta = "defined at line " + dl.line + ", column " + dl.col;
+    if (h.kind === "Fn") meta = (h.arity === 1 ? "1 parameter" : h.arity + " parameters") + " · " + meta;
+    els.hover.innerHTML =
+      '<div><span class="h-kind">' + describeKind(h.kind) + '</span> <span class="h-name">' + escapeHtml(h.name) + "</span></div>" +
+      '<div class="h-meta">' + meta + "</div>";
+    els.hover.style.display = "block";
+    let left = x + 14, top = y + 16;
+    const w = els.hover.offsetWidth, hh = els.hover.offsetHeight;
+    if (left + w > window.innerWidth - 8) left = x - w - 14;
+    if (top + hh > window.innerHeight - 8) top = y - hh - 14;
+    els.hover.style.left = left + "px";
+    els.hover.style.top = top + "px";
+  }, 90);
+}
+function hideHover(){ clearTimeout(hoverTimer); els.hover.style.display = "none"; }
+
+function runCurrent(){
+  let result;
+  try { result = runProgram(analysis.program); }
+  catch (e) { els.output.innerHTML = '<span class="rt-error">internal error while running</span>'; return; }
+  if (result.error) {
+    const lc = offsetToLineCol(els.editor.value, result.error.span.start);
+    els.output.innerHTML = '<span class="rt-error">runtime error at ' + lc.line + ":" + lc.col + " — " + escapeHtml(result.error.message) + "</span>";
+    jumpTo(result.error.span, "flash");
+    return;
+  }
+  if (!result.lines.length) { els.output.innerHTML = '<span class="ok">Ran with no printed values.</span>'; return; }
+  els.output.innerHTML = result.lines.map(l => '<span class="line">' + escapeHtml(l) + "</span>").join("");
+}
+
+/* ---------------- init ---------------- */
+function init(){
+  renderFileList();
+  els.editor.value = fileText[currentFile];
+  measure();
+  reanalyze();
+  els.editor.addEventListener("input", () => { activeBindingSpans = []; els.refPanel.innerHTML = ""; reanalyze(); });
+  els.editor.addEventListener("scroll", syncScroll);
+  els.editor.addEventListener("click", onEditorClick);
+  els.editor.addEventListener("keyup", e => { if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") { /* keep caret nav quiet */ } });
+  els.editor.addEventListener("mousemove", onEditorMove);
+  els.editor.addEventListener("mouseleave", hideHover);
+  els.editor.addEventListener("scroll", hideHover);
+  els.runBtn.addEventListener("click", runCurrent);
+  window.addEventListener("resize", () => { measure(); syncScroll(); });
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+else init();
+</script>
 </body>
 </html>
