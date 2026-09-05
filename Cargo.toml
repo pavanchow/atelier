@@ -1,0 +1,18 @@
+[package]
+name = "atelier"
+version = "0.1.0"
+edition = "2021"
+description = "A dependency-free semantic tooling engine for a small language: incremental analysis, symbol resolution, and IDE queries."
+license = "MIT"
+repository = "https://github.com/pavanchow/atelier"
+
+[[bin]]
+name = "atelier"
+path = "src/bin/atelier.rs"
+
+[lib]
+name = "atelier"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3

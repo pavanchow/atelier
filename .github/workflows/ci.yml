@@ -8,12 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build and test
+      - name: Build, lint, and test
         run: |
           if [ -f Cargo.toml ]; then
             rustup update stable
+            rustup component add clippy
             cargo build --verbose
+            cargo clippy --all-targets -- -D warnings
             cargo test --verbose
+            cargo build --release
           else
             echo "No build configured yet; scaffolding only."
           fi
