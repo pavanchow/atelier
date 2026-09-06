@@ -4,7 +4,7 @@ Atelier is a dependency-free code-intelligence engine for a small language. It i
 the semantic tooling layer an editor sits on top of. Give it source text and a
 stream of edits and it gives you back tokens, a syntax tree, a scoped symbol
 table, live diagnostics, and the queries an IDE needs: go to definition, find
-references, and hover.
+references, hover, and a safe rename-symbol refactor.
 
 It is written in pure Rust with the standard library only. No crates, no build
 scripts, edition 2021.
@@ -45,6 +45,7 @@ atelier analyze path/to/file        print diagnostics
 atelier def     path/to/file 3:5    definition of the symbol at line 3, column 5
 atelier refs    path/to/file 3:5    every reference to that symbol
 atelier hover   path/to/file 3:5    symbol info at that position
+atelier rename  path/to/file 3:5 n  rename the symbol at 3:5 to n, all sites
 atelier run     path/to/file        evaluate the program
 atelier demo                        a built-in tour of every feature
 ```
@@ -73,6 +74,10 @@ binding is visible after its declaration in the enclosing block. Blocks, functio
 bodies, and if branches each introduce a scope, and inner scopes may shadow outer
 names.
 
+Identifiers are unicode aware. A name may use any unicode letter, so `café` and
+`число` are ordinary identifiers, and the lexer never splits a multi byte
+character.
+
 ## API
 
 ```rust
@@ -85,6 +90,12 @@ let def = a.go_to_definition(15).unwrap();
 let refs = a.find_references(15);
 let info = a.hover(15);
 let diags = a.diagnostics();
+
+// Rename the symbol under the cursor everywhere it is used. The rename is
+// refused if it would change name resolution, so it can never capture or
+// dangle a name.
+let renamed = a.rename(4, "value").unwrap();
+assert_eq!(renamed.new_text, "let value = 1;\nlet y = value + 1;\n");
 
 // Apply an edit as a byte range plus replacement text. The analysis updates
 // incrementally and stays byte for byte identical to a full re-analysis.
@@ -118,6 +129,20 @@ count is controllable with `ATELIER_FUZZ_OPS`.
 3. Diagnostics and determinism. Diagnostics are correct, an in-scope name is
    never flagged and an out-of-scope name always is, and analyzing the same text
    twice yields identical output.
+4. Rename correctness. Renaming to a fresh name always succeeds and leaves name
+   resolution unchanged, and renaming to an existing name either preserves
+   resolution or is refused. Both outcomes are cross-checked against the
+   reference resolver, so an accepted rename provably resolves identically and a
+   refused one provably would have changed resolution.
+5. Boundary edits. Deleting a whole file, building one up from empty, commenting
+   a statement out at a seam, fusing or splitting tokens, editing inside a deeply
+   nested block, and editing a unicode identifier all keep incremental output
+   identical to a full re-analysis.
+
+The generator that feeds these gates is itself adversarial. It emits shadowing,
+cross-scope references, redefinitions, hoisted forward references, nested blocks
+and functions, and unicode identifiers, and the edit generator produces the seam
+cases that break naive incremental engines.
 
 Run them, and push the fuzzing harder if you like.
 

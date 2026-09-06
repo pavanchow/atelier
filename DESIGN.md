@@ -27,6 +27,8 @@ The crate is a small set of focused modules.
 - `incremental` is the heart of the project. It maintains an `Analysis`, applies
   edits, reuses unedited work, and rebuilds the symbol table.
 - `query` answers go to definition, find references, and hover.
+- `rename` is the rename-symbol refactor. It rewrites a binding and every
+  reference and refuses any rename that would change name resolution.
 - `eval` is a tree-walking evaluator so a program can Run.
 - `workspace` is the multi-file project model and the run task.
 - `rng` and `gen` are the seedable generator that feeds the gates.
@@ -52,6 +54,14 @@ numbers are digit runs, and operators handle the two-character forms before the
 one-character forms. The only state that reaches beyond a single character is the
 line comment, which runs from a pair of slashes to the end of the line. That one
 fact drives a decision in the incremental layer, described below.
+
+The lexer is unicode aware. An identifier may start with any unicode letter or an
+underscore and continue with any letter or digit, so `café` and `число` are
+identifiers. The scan advances one whole character at a time, and an unrecognized
+character becomes a single-character error token covering the whole codepoint, so
+the lexer never slices a multi byte character and never panics on arbitrary text.
+Because every offset is still a byte offset, spans stay exact for multi byte
+input and the incremental layer needs no special case for it.
 
 ## The parser and error recovery
 
@@ -140,6 +150,25 @@ zero become runtime errors rather than panics. Top-level functions are hoisted s
 they can recurse and call one another. Running a program prints the value of each
 top-level expression statement.
 
+## Rename
+
+Rename is the one refactor that has to be exactly right, because it edits the
+user's code. Atelier makes it safe by construction. To rename the symbol at a
+position, the renamer gathers every occurrence of that binding through find
+references, rewrites each occurrence right to left so earlier offsets stay valid,
+and produces candidate text. It then re-analyses the candidate and compares a
+fingerprint of name resolution before and after. The fingerprint records, for
+each identifier occurrence in position order, the rank of the declaration it
+resolves to. If the fingerprints differ the rename would have changed which
+declaration some name binds to, which is capture or a collision, so it is refused
+and the original text is left untouched. A new name is also validated as a single
+identifier first, so a rename can never introduce a syntax error.
+
+The consequence is a strong guarantee. An accepted rename produces a program that
+resolves every name exactly as the original did, and an unsafe rename is reported
+rather than applied. Renaming to a name that appears nowhere in the file is always
+safe and always accepted.
+
 ## Why each gate proves its claim
 
 The gates live in the tests and run over many seeded random programs.
@@ -166,5 +195,26 @@ of scope always is, that redefinitions and parse errors are reported, and that
 analyzing the same text twice is bit-for-bit identical. Correctness and
 determinism together are what a tool downstream depends on.
 
-All three are bounded for continuous integration and scale up through the
+The rename gate proves the refactor is semantics preserving. For each random
+program it renames sampled symbols in two ways. Renaming to a globally fresh name
+must always succeed, and the renamed program, resolved by the independent
+reference resolver, must have the same resolution fingerprint as the original.
+Renaming to an existing name must either preserve that fingerprint or be refused,
+and when it is refused the gate performs the rename without the safety check and
+confirms that the fingerprint really would have changed. Checking with the
+reference resolver rather than the production one keeps the proof honest, since
+the renamer's own safety check uses the production resolver.
+
+The boundary gate pins down the classic incremental break points that random
+edits reach only rarely: deleting the whole file, growing it from empty, turning
+a statement into a comment at a line seam, fusing and splitting tokens, editing
+inside a deeply nested block, and editing a unicode identifier. Each must keep
+incremental output identical to a full re-analysis.
+
+The generators are adversarial on purpose. Programs carry shadowing, cross-scope
+references, redefinitions, hoisted forward references, nested blocks and
+functions, and unicode identifiers, and the edit generator emits the token and
+comment seam cases that a naive incremental engine gets wrong.
+
+All of them are bounded for continuous integration and scale up through the
 `ATELIER_FUZZ_OPS` environment variable, so the same tests double as a fuzzer.
