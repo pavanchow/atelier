@@ -105,7 +105,10 @@ impl Analysis {
     /// Replace the byte range `[start, end)` with `replacement` and update the
     /// analysis incrementally.
     pub fn edit(&mut self, start: u32, end: u32, replacement: &str) {
-        assert!(start <= end && end as usize <= self.text.len(), "edit out of bounds");
+        assert!(
+            start <= end && end as usize <= self.text.len(),
+            "edit out of bounds"
+        );
         let (start_us, end_us) = (start as usize, end as usize);
         let delta = replacement.len() as i64 - (end - start) as i64;
 
@@ -139,10 +142,10 @@ impl Analysis {
         // mid line could inherit or shed comment state from a reused prefix
         // unit. Line aligned edges make re lexing independent of the reused
         // parts.
-        let mut rs = prefix.last().map(|u| u.hi).unwrap_or(0);
+        let mut rs = prefix.last().map_or(0, |u| u.hi);
         while !prefix.is_empty() && !is_line_start(&new_text, rs) {
             prefix.pop();
-            rs = prefix.last().map(|u| u.hi).unwrap_or(0);
+            rs = prefix.last().map_or(0, |u| u.hi);
         }
 
         let text_len = new_text.len() as u32;
@@ -185,8 +188,16 @@ impl Analysis {
 
     fn rebuild(&mut self) {
         self.program = self.units.iter().map(|u| u.stmt.clone()).collect();
-        self.tokens = self.units.iter().flat_map(|u| u.tokens.iter().cloned()).collect();
-        let parse_diags: Vec<Diagnostic> = self.units.iter().flat_map(|u| u.diags.iter().cloned()).collect();
+        self.tokens = self
+            .units
+            .iter()
+            .flat_map(|u| u.tokens.iter().cloned())
+            .collect();
+        let parse_diags: Vec<Diagnostic> = self
+            .units
+            .iter()
+            .flat_map(|u| u.diags.iter().cloned())
+            .collect();
         self.symbols = resolver::resolve(&self.program);
         let mut all = parse_diags;
         all.extend(self.symbols.diagnostics.iter().cloned());
@@ -212,7 +223,7 @@ fn build_units(groups: Vec<ItemParse>, region_lo: u32, region_hi: u32) -> Vec<Un
             if i == 0 {
                 region_lo
             } else {
-                g.tokens.first().map(|t| t.span.start).unwrap_or(region_lo)
+                g.tokens.first().map_or(region_lo, |t| t.span.start)
             }
         })
         .collect();
@@ -325,8 +336,18 @@ mod tests {
         let b = Analysis::new(a.text());
         assert_eq!(a.tokens(), b.tokens(), "tokens differ for {:?}", a.text());
         assert_eq!(a.program(), b.program(), "ast differs for {:?}", a.text());
-        assert_eq!(a.diagnostics(), b.diagnostics(), "diags differ for {:?}", a.text());
-        assert_eq!(a.symbols(), b.symbols(), "symbols differ for {:?}", a.text());
+        assert_eq!(
+            a.diagnostics(),
+            b.diagnostics(),
+            "diags differ for {:?}",
+            a.text()
+        );
+        assert_eq!(
+            a.symbols(),
+            b.symbols(),
+            "symbols differ for {:?}",
+            a.text()
+        );
     }
 
     #[test]
@@ -360,7 +381,11 @@ mod tests {
     fn incremental_equals_batch_after_many_edits() {
         let mut a = Analysis::new("fn main() { let a = 1; a }");
         a.edit(0, 0, "let g = 9;\n");
-        a.edit(a.text().len() as u32, a.text().len() as u32, "\nlet h = g;\n");
+        a.edit(
+            a.text().len() as u32,
+            a.text().len() as u32,
+            "\nlet h = g;\n",
+        );
         let cut = a.text().find("a = 1").unwrap() as u32;
         a.edit(cut + 4, cut + 5, "100");
         assert_matches_batch(&a);

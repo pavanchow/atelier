@@ -37,7 +37,12 @@ impl Diagnostic {
     }
 
     fn sort_key(&self) -> (u32, u32, DiagKind, &str) {
-        (self.span.start, self.span.end, self.kind, self.message.as_str())
+        (
+            self.span.start,
+            self.span.end,
+            self.kind,
+            self.message.as_str(),
+        )
     }
 }
 

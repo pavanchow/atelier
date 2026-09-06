@@ -102,12 +102,12 @@ impl<'t> Parser<'t> {
     /// A zero width span positioned at the end of the last consumed token, used
     /// to anchor end of input diagnostics.
     fn eof_span(&self) -> Span {
-        let end = self.tokens.last().map(|t| t.span.end).unwrap_or(0);
+        let end = self.tokens.last().map_or(0, |t| t.span.end);
         Span::new(end, end)
     }
 
     fn cur_span(&self) -> Span {
-        self.peek().map(|t| t.span).unwrap_or_else(|| self.eof_span())
+        self.peek().map_or_else(|| self.eof_span(), |t| t.span)
     }
 
     /// End offset of the last consumed token. Used to close a construct whose
@@ -147,7 +147,11 @@ impl<'t> Parser<'t> {
             // statement's diagnostics depend on the next one, which would break
             // incremental reuse.
             let at = self.prev_end();
-            self.error(Span::new(at, at), DiagKind::ParseError, format!("expected {what}"));
+            self.error(
+                Span::new(at, at),
+                DiagKind::ParseError,
+                format!("expected {what}"),
+            );
             None
         }
     }
@@ -223,7 +227,7 @@ impl<'t> Parser<'t> {
         self.expect(TokenKind::Eq, "`=`");
         let value = self.parse_expr();
         let semi = self.expect(TokenKind::Semi, "`;`");
-        let end = semi.map(|s| s.end).unwrap_or(value.span.end);
+        let end = semi.map_or(value.span.end, |s| s.end);
         Some(Stmt {
             kind: StmtKind::Let(LetStmt { name, value }),
             span: Span::new(start, end),
@@ -234,7 +238,7 @@ impl<'t> Parser<'t> {
         let expr = self.parse_expr();
         let start = expr.span.start;
         let semi = self.expect(TokenKind::Semi, "`;`");
-        let end = semi.map(|s| s.end).unwrap_or(expr.span.end);
+        let end = semi.map_or(expr.span.end, |s| s.end);
         if semi.is_none() {
             self.recover_to_stmt_boundary();
         }
@@ -258,7 +262,7 @@ impl<'t> Parser<'t> {
                     self.bump();
                     break;
                 }
-                Some(TokenKind::Fn) | Some(TokenKind::Let) | Some(TokenKind::RBrace) => break,
+                Some(TokenKind::Fn | TokenKind::Let | TokenKind::RBrace) => break,
                 _ => {
                     self.bump();
                 }
@@ -302,7 +306,7 @@ impl<'t> Parser<'t> {
 
     fn parse_block(&mut self) -> Block {
         let open = self.expect(TokenKind::LBrace, "`{`");
-        let start = open.map(|s| s.start).unwrap_or_else(|| self.cur_span().start);
+        let start = open.map_or_else(|| self.cur_span().start, |s| s.start);
         let mut stmts = Vec::new();
         let mut tail = None;
         loop {
@@ -467,7 +471,7 @@ impl<'t> Parser<'t> {
                 }
             }
             let close = self.expect(TokenKind::RParen, "`)`");
-            let end = close.map(|s| s.end).unwrap_or_else(|| self.prev_end());
+            let end = close.map_or_else(|| self.prev_end(), |s| s.end);
             let span = Span::new(expr.span.start, end);
             expr = Expr {
                 kind: ExprKind::Call {
@@ -516,7 +520,7 @@ impl<'t> Parser<'t> {
                 self.bump();
                 let inner = self.parse_expr();
                 let close = self.expect(TokenKind::RParen, "`)`");
-                let end = close.map(|s| s.end).unwrap_or(inner.span.end);
+                let end = close.map_or(inner.span.end, |s| s.end);
                 Expr {
                     kind: ExprKind::Paren(Box::new(inner)),
                     span: Span::new(start, end),
@@ -535,7 +539,11 @@ impl<'t> Parser<'t> {
                 // An expression was required but none is here.
                 if self.at_end() {
                     self.truncated = true;
-                    self.error(self.eof_span(), DiagKind::UnexpectedEof, "expected an expression");
+                    self.error(
+                        self.eof_span(),
+                        DiagKind::UnexpectedEof,
+                        "expected an expression",
+                    );
                     Expr {
                         kind: ExprKind::Error,
                         span: self.eof_span(),
@@ -619,7 +627,10 @@ mod tests {
     #[test]
     fn missing_semicolon_reports_error() {
         let out = parse("let x = 1");
-        assert!(out.diagnostics.iter().any(|d| d.kind == DiagKind::UnexpectedEof));
+        assert!(out
+            .diagnostics
+            .iter()
+            .any(|d| d.kind == DiagKind::UnexpectedEof));
         assert!(out.truncated);
     }
 

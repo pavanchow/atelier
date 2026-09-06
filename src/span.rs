@@ -96,7 +96,7 @@ mod tests {
     fn linecol_roundtrip() {
         let text = "let a = 1;\nlet b = 2;\n";
         let off = linecol_to_offset(text, 2, 5);
-        assert_eq!(&text[off as usize..off as usize + 1], "b");
+        assert_eq!(&text[(off as usize)..=(off as usize)], "b");
         let lc = offset_to_linecol(text, off);
         assert_eq!(lc, LineCol { line: 2, col: 5 });
     }

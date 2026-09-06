@@ -77,7 +77,7 @@ pub fn run(program: &Program) -> Result<RunOutput, RuntimeError> {
     Ok(RunOutput { lines })
 }
 
-impl<'p> Interp<'p> {
+impl Interp<'_> {
     fn lookup_var(&self, scopes: &[HashMap<String, Value>], name: &str) -> Option<Value> {
         for scope in scopes.iter().rev() {
             if let Some(v) = scope.get(name) {
@@ -87,7 +87,11 @@ impl<'p> Interp<'p> {
         self.globals_var.get(name).cloned()
     }
 
-    fn eval_block(&self, block: &Block, scopes: &mut Vec<HashMap<String, Value>>) -> Result<Value, RuntimeError> {
+    fn eval_block(
+        &self,
+        block: &Block,
+        scopes: &mut Vec<HashMap<String, Value>>,
+    ) -> Result<Value, RuntimeError> {
         scopes.push(HashMap::new());
         let result = (|| {
             for stmt in &block.stmts {
@@ -111,27 +115,31 @@ impl<'p> Interp<'p> {
         result
     }
 
-    fn eval_expr(&self, expr: &Expr, scopes: &mut Vec<HashMap<String, Value>>) -> Result<Value, RuntimeError> {
+    fn eval_expr(
+        &self,
+        expr: &Expr,
+        scopes: &mut Vec<HashMap<String, Value>>,
+    ) -> Result<Value, RuntimeError> {
         match &expr.kind {
             ExprKind::Int(n) => Ok(Value::Int(*n)),
             ExprKind::Bool(b) => Ok(Value::Bool(*b)),
-            ExprKind::Error => Err(self.err(expr.span, "cannot evaluate a syntax error")),
+            ExprKind::Error => Err(err(expr.span, "cannot evaluate a syntax error")),
             ExprKind::Name(name) => self
                 .lookup_var(scopes, name)
-                .ok_or_else(|| self.err(expr.span, format!("`{name}` is not a value in scope"))),
+                .ok_or_else(|| err(expr.span, format!("`{name}` is not a value in scope"))),
             ExprKind::Paren(inner) => self.eval_expr(inner, scopes),
             ExprKind::Unary { op, expr: inner } => {
                 let v = self.eval_expr(inner, scopes)?;
                 match (op, v) {
                     (UnOp::Neg, Value::Int(n)) => Ok(Value::Int(-n)),
                     (UnOp::Not, Value::Bool(b)) => Ok(Value::Bool(!b)),
-                    _ => Err(self.err(expr.span, "type error in unary operation")),
+                    _ => Err(err(expr.span, "type error in unary operation")),
                 }
             }
             ExprKind::Binary { op, lhs, rhs } => {
                 let l = self.eval_expr(lhs, scopes)?;
                 let r = self.eval_expr(rhs, scopes)?;
-                self.eval_binary(*op, l, r, expr.span)
+                eval_binary(*op, l, r, expr.span)
             }
             ExprKind::Block(block) => self.eval_block(block, scopes),
             ExprKind::If {
@@ -146,22 +154,26 @@ impl<'p> Interp<'p> {
                         Some(b) => self.eval_block(b, scopes),
                         None => Ok(Value::Unit),
                     },
-                    _ => Err(self.err(cond.span, "if condition must be a boolean")),
+                    _ => Err(err(cond.span, "if condition must be a boolean")),
                 }
             }
             ExprKind::Call { callee, args } => {
                 let name = match &callee.kind {
                     ExprKind::Name(n) => n.clone(),
-                    _ => return Err(self.err(callee.span, "call target must be a function name")),
+                    _ => return Err(err(callee.span, "call target must be a function name")),
                 };
                 let func = *self
                     .globals_fn
                     .get(&name)
-                    .ok_or_else(|| self.err(callee.span, format!("`{name}` is not a function")))?;
+                    .ok_or_else(|| err(callee.span, format!("`{name}` is not a function")))?;
                 if func.params.len() != args.len() {
-                    return Err(self.err(
+                    return Err(err(
                         expr.span,
-                        format!("`{name}` expects {} arguments, got {}", func.params.len(), args.len()),
+                        format!(
+                            "`{name}` expects {} arguments, got {}",
+                            func.params.len(),
+                            args.len()
+                        ),
                     ));
                 }
                 let mut frame = HashMap::new();
@@ -174,40 +186,40 @@ impl<'p> Interp<'p> {
             }
         }
     }
+}
 
-    fn eval_binary(&self, op: BinOp, l: Value, r: Value, span: Span) -> Result<Value, RuntimeError> {
-        use Value::*;
-        let arith = |f: fn(i64, i64) -> Option<i64>| match (&l, &r) {
-            (Int(a), Int(b)) => f(*a, *b)
-                .map(Int)
-                .ok_or_else(|| self.err(span, "arithmetic error")),
-            _ => Err(self.err(span, "arithmetic requires integers")),
-        };
-        match op {
-            BinOp::Add => arith(|a, b| a.checked_add(b)),
-            BinOp::Sub => arith(|a, b| a.checked_sub(b)),
-            BinOp::Mul => arith(|a, b| a.checked_mul(b)),
-            BinOp::Div => arith(|a, b| a.checked_div(b)),
-            BinOp::Eq => Ok(Bool(values_eq(&l, &r))),
-            BinOp::Ne => Ok(Bool(!values_eq(&l, &r))),
-            BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => match (l, r) {
-                (Int(a), Int(b)) => Ok(Bool(match op {
-                    BinOp::Lt => a < b,
-                    BinOp::Le => a <= b,
-                    BinOp::Gt => a > b,
-                    BinOp::Ge => a >= b,
-                    _ => unreachable!(),
-                })),
-                _ => Err(self.err(span, "comparison requires integers")),
-            },
-        }
+fn eval_binary(op: BinOp, l: Value, r: Value, span: Span) -> Result<Value, RuntimeError> {
+    use Value::{Bool, Int};
+    let arith = |f: fn(i64, i64) -> Option<i64>| match (&l, &r) {
+        (Int(a), Int(b)) => f(*a, *b)
+            .map(Int)
+            .ok_or_else(|| err(span, "arithmetic error")),
+        _ => Err(err(span, "arithmetic requires integers")),
+    };
+    match op {
+        BinOp::Add => arith(i64::checked_add),
+        BinOp::Sub => arith(i64::checked_sub),
+        BinOp::Mul => arith(i64::checked_mul),
+        BinOp::Div => arith(i64::checked_div),
+        BinOp::Eq => Ok(Bool(values_eq(&l, &r))),
+        BinOp::Ne => Ok(Bool(!values_eq(&l, &r))),
+        BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => match (l, r) {
+            (Int(a), Int(b)) => Ok(Bool(match op {
+                BinOp::Lt => a < b,
+                BinOp::Le => a <= b,
+                BinOp::Gt => a > b,
+                BinOp::Ge => a >= b,
+                _ => unreachable!(),
+            })),
+            _ => Err(err(span, "comparison requires integers")),
+        },
     }
+}
 
-    fn err(&self, span: Span, message: impl Into<String>) -> RuntimeError {
-        RuntimeError {
-            span,
-            message: message.into(),
-        }
+fn err(span: Span, message: impl Into<String>) -> RuntimeError {
+    RuntimeError {
+        span,
+        message: message.into(),
     }
 }
 

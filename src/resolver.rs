@@ -83,7 +83,13 @@ pub fn resolve(program: &Program) -> SymbolTable {
 }
 
 impl Resolver {
-    fn add_binding(&mut self, name: &str, kind: BindingKind, decl_span: Span, arity: Option<usize>) -> usize {
+    fn add_binding(
+        &mut self,
+        name: &str,
+        kind: BindingKind,
+        decl_span: Span,
+        arity: Option<usize>,
+    ) -> usize {
         let id = self.table.bindings.len();
         self.table.bindings.push(Binding {
             name: name.to_string(),
@@ -138,7 +144,11 @@ impl Resolver {
                 self.redef(&p.name, p.span);
             }
             let id = self.add_binding(&p.name, BindingKind::Param, p.span, None);
-            self.stack.last_mut().unwrap().seq.push((p.name.clone(), id));
+            self.stack
+                .last_mut()
+                .unwrap()
+                .seq
+                .push((p.name.clone(), id));
         }
 
         // Hoist function declarations for this scope.
@@ -154,7 +164,11 @@ impl Resolver {
                     f.name.span,
                     Some(f.params.len()),
                 );
-                self.stack.last_mut().unwrap().fns.push((f.name.name.clone(), id));
+                self.stack
+                    .last_mut()
+                    .unwrap()
+                    .fns
+                    .push((f.name.name.clone(), id));
                 fn_binding_for[i] = Some(id);
             }
         }
@@ -167,7 +181,11 @@ impl Resolver {
                         self.redef(&l.name.name, l.name.span);
                     }
                     let id = self.add_binding(&l.name.name, BindingKind::Let, l.name.span, None);
-                    self.stack.last_mut().unwrap().seq.push((l.name.name.clone(), id));
+                    self.stack
+                        .last_mut()
+                        .unwrap()
+                        .seq
+                        .push((l.name.name.clone(), id));
                 }
                 StmtKind::Fn(f) => {
                     let _ = fn_binding_for[i];
@@ -185,7 +203,7 @@ impl Resolver {
     }
 
     fn scope_block(&mut self, block: &Block, params: &[Ident]) {
-        let tail: Vec<&Expr> = block.tail.iter().map(|b| b.as_ref()).collect();
+        let tail: Vec<&Expr> = block.tail.iter().map(std::convert::AsRef::as_ref).collect();
         self.scope(&block.stmts, &tail, params);
     }
 
@@ -262,13 +280,19 @@ mod tests {
     #[test]
     fn unresolved_name_flagged() {
         let t = table("let x = y;");
-        assert!(t.diagnostics.iter().any(|d| d.kind == DiagKind::UnresolvedName));
+        assert!(t
+            .diagnostics
+            .iter()
+            .any(|d| d.kind == DiagKind::UnresolvedName));
     }
 
     #[test]
     fn redefinition_flagged() {
         let t = table("let x = 1; let x = 2;");
-        assert!(t.diagnostics.iter().any(|d| d.kind == DiagKind::Redefinition));
+        assert!(t
+            .diagnostics
+            .iter()
+            .any(|d| d.kind == DiagKind::Redefinition));
     }
 
     #[test]
@@ -280,6 +304,9 @@ mod tests {
     #[test]
     fn let_not_visible_before_declaration() {
         let t = table("fn f() { let a = b; let b = 1; }");
-        assert!(t.diagnostics.iter().any(|d| d.kind == DiagKind::UnresolvedName));
+        assert!(t
+            .diagnostics
+            .iter()
+            .any(|d| d.kind == DiagKind::UnresolvedName));
     }
 }

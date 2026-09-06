@@ -16,3 +16,22 @@ path = "src/lib.rs"
 
 [profile.release]
 opt-level = 3
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Spans and byte offsets are u32 by design: a source file that needs more than
+# 4 GiB of offsets is out of scope, so offset arithmetic casts freely.
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_possible_wrap = "allow"
+cast_lossless = "allow"
+# A small, self-documenting crate: these add noise without adding safety here.
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Glob-importing the AST node types is the idiomatic shape for tree walkers.
+wildcard_imports = "allow"
+# The parser returns Option uniformly so every production has the same shape,
+# even the ones that currently always succeed.
+unnecessary_wraps = "allow"
