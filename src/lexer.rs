@@ -72,12 +72,12 @@ fn keyword(word: &str) -> Option<TokenKind> {
     })
 }
 
-fn is_ident_start(b: u8) -> bool {
-    b == b'_' || b.is_ascii_alphabetic()
+fn is_ident_start(c: char) -> bool {
+    c == '_' || c.is_alphabetic()
 }
 
-fn is_ident_continue(b: u8) -> bool {
-    b == b'_' || b.is_ascii_alphanumeric()
+fn is_ident_continue(c: char) -> bool {
+    c == '_' || c.is_alphanumeric()
 }
 
 /// Lex a full source string into tokens (excluding any end marker).
@@ -106,10 +106,19 @@ pub fn lex_at(text: &str, base: u32) -> Vec<Token> {
             continue;
         }
         let start = i;
-        let kind = if is_ident_start(b) {
-            i += 1;
-            while i < bytes.len() && is_ident_continue(bytes[i]) {
-                i += 1;
+        // Decode the leading char so multi byte input never gets sliced across a
+        // codepoint boundary. `i` only ever advances by whole chars or ASCII
+        // bytes, so `text[i..]` always begins on a boundary here.
+        let ch = text[i..].chars().next().unwrap();
+        let kind = if is_ident_start(ch) {
+            i += ch.len_utf8();
+            while i < bytes.len() {
+                let c = text[i..].chars().next().unwrap();
+                if is_ident_continue(c) {
+                    i += c.len_utf8();
+                } else {
+                    break;
+                }
             }
             let word = &text[start..i];
             keyword(word).unwrap_or(TokenKind::Ident)
@@ -151,15 +160,14 @@ pub fn lex_at(text: &str, base: u32) -> Vec<Token> {
                     b'!' => Some(TokenKind::Bang),
                     _ => None,
                 };
-                match single {
-                    Some(k) => {
-                        i += 1;
-                        k
-                    }
-                    None => {
-                        i += 1;
-                        TokenKind::Error
-                    }
+                if let Some(k) = single {
+                    i += 1;
+                    k
+                } else {
+                    // Consume the whole char, not one byte, so an Error token
+                    // over a multi byte codepoint keeps well formed spans.
+                    i += ch.len_utf8();
+                    TokenKind::Error
                 }
             }
         };
@@ -224,5 +232,31 @@ mod tests {
         let toks = lex("a @ b");
         assert_eq!(toks[1].kind, TokenKind::Error);
         assert_eq!(toks[1].text, "@");
+    }
+
+    #[test]
+    fn unicode_identifier_lexes_without_panic() {
+        let toks = lex("let café = 1;");
+        assert_eq!(toks[1].kind, TokenKind::Ident);
+        assert_eq!(toks[1].text, "café");
+        // `é` is two bytes, so the `=` sits two bytes past a naive ASCII count.
+        assert_eq!(toks[2].kind, TokenKind::Eq);
+    }
+
+    #[test]
+    fn non_ascii_symbol_is_a_single_error_token() {
+        let toks = lex("a € b");
+        assert_eq!(toks.len(), 3);
+        assert_eq!(toks[1].kind, TokenKind::Error);
+        assert_eq!(toks[1].text, "€");
+        assert_eq!(toks[1].span, Span::new(2, 5));
+    }
+
+    #[test]
+    fn unicode_inside_comment_is_skipped() {
+        let toks = lex("a // café ☕\nb");
+        assert_eq!(toks.len(), 2);
+        assert_eq!(toks[0].text, "a");
+        assert_eq!(toks[1].text, "b");
     }
 }
