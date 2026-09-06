@@ -5,6 +5,7 @@
 //!   def <file> <pos>           print the definition of the symbol at <pos>
 //!   refs <file> <pos>          print all references to the symbol at <pos>
 //!   hover <file> <pos>         print symbol info at <pos>
+//!   rename <file> <pos> <name> print the file with the symbol at <pos> renamed
 //!   run <file>                 evaluate the program
 //!   demo                       run a built in tour of every feature
 //!
@@ -18,12 +19,13 @@ use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let cmd = args.first().map(String::as_str).unwrap_or("");
+    let cmd = args.first().map_or("", String::as_str);
     match cmd {
         "analyze" => need_file(&args, cmd, cmd_analyze),
         "def" => need_file_pos(&args, cmd, cmd_def),
         "refs" => need_file_pos(&args, cmd, cmd_refs),
         "hover" => need_file_pos(&args, cmd, cmd_hover),
+        "rename" => cmd_rename(&args),
         "run" => need_file(&args, cmd, cmd_run),
         "demo" => {
             cmd_demo();
@@ -44,6 +46,7 @@ fn usage() {
          atelier def <file> <pos>\n  \
          atelier refs <file> <pos>\n  \
          atelier hover <file> <pos>\n  \
+         atelier rename <file> <pos> <name>\n  \
          atelier run <file>\n  \
          atelier demo\n\n\
          <pos> is a byte offset or a one-based line:col"
@@ -99,7 +102,10 @@ fn parse_pos(text: &str, s: &str) -> u32 {
 
 fn show_span(text: &str, span: Span) -> String {
     let lc = span::offset_to_linecol(text, span.start);
-    format!("{}:{} (bytes {}..{})", lc.line, lc.col, span.start, span.end)
+    format!(
+        "{}:{} (bytes {}..{})",
+        lc.line, lc.col, span.start, span.end
+    )
 }
 
 fn cmd_analyze(a: &Analysis) {
@@ -152,6 +158,40 @@ fn cmd_hover(a: &Analysis, pos: u32) {
             println!("{sig}\ndefined at {}", show_span(a.text(), h.decl_span));
         }
         None => println!("nothing to hover at that position"),
+    }
+}
+
+fn cmd_rename(args: &[String]) -> ExitCode {
+    let (Some(path), Some(pos_str), Some(name)) = (args.get(1), args.get(2), args.get(3)) else {
+        eprintln!("rename: usage: atelier rename <file> <pos> <new-name>");
+        return ExitCode::from(2);
+    };
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("rename: cannot read {path}: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let pos = parse_pos(&text, pos_str);
+    let a = Analysis::new(text);
+    match a.rename(pos, name) {
+        Ok(r) => {
+            print!("{}", r.new_text);
+            ExitCode::SUCCESS
+        }
+        Err(atelier::RenameError::NotRenameable) => {
+            eprintln!("rename: no renameable symbol at that position");
+            ExitCode::FAILURE
+        }
+        Err(atelier::RenameError::InvalidName) => {
+            eprintln!("rename: `{name}` is not a valid identifier");
+            ExitCode::FAILURE
+        }
+        Err(atelier::RenameError::Conflict) => {
+            eprintln!("rename: refused, renaming to `{name}` would change name resolution");
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -219,6 +259,12 @@ result;
     let pos = a.text().find("10").unwrap() as u32;
     a.edit(pos, pos + 2, "15");
     cmd_run(&a);
+
+    println!("\n=== rename (rename `fib` to `fibonacci`, all sites, safely) ===");
+    match a.rename(a.text().find("fib").unwrap() as u32, "fibonacci") {
+        Ok(r) => print!("{}", r.new_text),
+        Err(e) => println!("rename failed: {e:?}"),
+    }
 
     println!("\n=== diagnostics (a program with mistakes) ===");
     let broken = "let a = 1;\nlet a = 2;\nlet c = missing + 1\n";
