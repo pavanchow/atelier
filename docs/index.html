@@ -1447,7 +1447,7 @@ function runCurrent(){
   catch (e) { els.output.innerHTML = '<span class="rt-error">internal error while running</span>'; return; }
   if (result.error) {
     const lc = offsetToLineCol(els.editor.value, result.error.span.start);
-    els.output.innerHTML = '<span class="rt-error">runtime error at ' + lc.line + ":" + lc.col + " — " + escapeHtml(result.error.message) + "</span>";
+    els.output.innerHTML = '<span class="rt-error">runtime error at ' + lc.line + ":" + lc.col + ", " + escapeHtml(result.error.message) + "</span>";
     jumpTo(result.error.span, "flash");
     return;
   }
