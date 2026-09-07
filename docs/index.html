@@ -2,9 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atelier Playground</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier: a dependency-free code-intelligence engine in Rust</title>
+<meta name="description" content="Atelier by Pavan Nallamothu: a dependency-free code-intelligence engine for a small language, the semantic layer an editor sits on. Give it source and a stream of edits and it returns tokens, a syntax tree, a scoped symbol table, live diagnostics, and IDE queries: go to definition, find references, hover, and a safe rename. Pure Rust, standard library only.">
+<meta name="author" content="Pavan Nallamothu (pavanchow)">
+<link rel="canonical" href="https://pavanchow.github.io/atelier/">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="author" href="https://github.com/pavanchow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Atelier: a dependency-free code-intelligence engine in Rust">
+<meta property="og:description" content="The semantic tooling an editor sits on: tokens, a syntax tree, a scoped symbol table, live diagnostics, go to definition, find references, hover, and a safe rename. Pure Rust, standard library only. By Pavan Nallamothu.">
+<meta property="og:url" content="https://pavanchow.github.io/atelier/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Atelier: a dependency-free code-intelligence engine in Rust">
+<meta name="twitter:description" content="Click an identifier and watch it resolve. Go to definition, find references, live diagnostics, and a safe rename, in code you can read in an afternoon.">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Atelier","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","description":"Atelier is a dependency-free code-intelligence engine for a small language, written in pure Rust with the standard library only. It provides a lexer, parser, a scoped symbol table, live diagnostics, and IDE queries including go to definition, find references, hover, a safe rename-symbol refactor, and incremental re-analysis that stays identical to a full re-analysis.","url":"https://pavanchow.github.io/atelier/","author":{"@type":"Person","name":"Pavan Nallamothu"},"programmingLanguage":"Rust","codeRepository":"https://github.com/pavanchow/atelier","license":"https://opensource.org/licenses/MIT"}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Person","name":"Pavan Nallamothu","alternateName":"pavanchow","url":"https://github.com/pavanchow","sameAs":["https://github.com/pavanchow","https://hackerone.com/pavanchow"]}
+</script>
 <style>
   /* ---- Base theme (light). Defined FIRST, before the dark @media block. ---- */
   :root {
@@ -15,14 +32,15 @@
     --text-dim: #6e6e73;
     --border: #e2e2e7;
     --border-strong: #d0d0d6;
-    --accent: #0071e3;
-    --accent-soft: rgba(0, 113, 227, 0.12);
-    --accent-line: rgba(0, 113, 227, 0.45);
+    --accent: #4f46e5;
+    --accent2: #818cf8;
+    --accent-soft: rgba(79, 70, 229, 0.12);
+    --accent-line: rgba(79, 70, 229, 0.45);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05);
     --err: #d70015;
     --err-soft: rgba(215, 0, 21, 0.10);
     --ok: #1a7f37;
-    --defbox: rgba(0, 113, 227, 0.16);
+    --defbox: rgba(79, 70, 229, 0.16);
     --refbox: rgba(255, 159, 10, 0.22);
     --flash: rgba(255, 214, 10, 0.55);
     /* syntax */
@@ -36,10 +54,10 @@
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   }
 
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
 
   body {
-    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -58,14 +76,15 @@
       --text-dim: #98989d;
       --border: #2c2c2e;
       --border-strong: #3a3a3c;
-      --accent: #2997ff;
-      --accent-soft: rgba(41, 151, 255, 0.16);
-      --accent-line: rgba(41, 151, 255, 0.55);
+      --accent: #a5b4fc;
+      --accent2: #c7d2fe;
+      --accent-soft: rgba(129, 140, 248, 0.18);
+      --accent-line: rgba(129, 140, 248, 0.55);
       --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.4);
       --err: #ff453a;
       --err-soft: rgba(255, 69, 58, 0.16);
       --ok: #30d158;
-      --defbox: rgba(41, 151, 255, 0.28);
+      --defbox: rgba(129, 140, 248, 0.28);
       --refbox: rgba(255, 159, 10, 0.30);
       --flash: rgba(255, 214, 10, 0.45);
       --syn-kw: #d783ff;
@@ -82,39 +101,33 @@
     }
   }
 
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 18px 28px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    backdrop-filter: saturate(180%) blur(12px);
-  }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand img.logo { width: 34px; height: 34px; display: block; }
-  .docs details.howto-details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
-  .docs details.howto-details > summary::-webkit-details-marker { display: none; }
-  .docs details.howto-details > summary::before { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); transition: transform .2s; flex: none; }
-  .docs details.howto-details[open] > summary::before { transform: rotate(45deg); }
-  .brand h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
-  .brand .tag { font-size: 13px; color: var(--text-dim); }
-  header a.repo {
-    font-size: 14px;
-    color: var(--accent);
-    text-decoration: none;
-    padding: 7px 14px;
-    border: 1px solid var(--border-strong);
-    border-radius: 980px;
-    transition: background 0.15s ease;
-  }
-  header a.repo:hover { background: var(--accent-soft); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .92em; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: .08em .38em; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
 
-  main { max-width: 1180px; margin: 0 auto; padding: 24px 28px 64px; }
+  /* Nav */
+  nav { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.82); backdrop-filter: saturate(180%) blur(16px); border-bottom: 1px solid var(--border); }
+  @media (prefers-color-scheme: dark){ nav { background: rgba(0,0,0,.72); } }
+  nav .row { display: flex; justify-content: space-between; align-items: center; height: 56px; max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  nav .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
+  nav .brand img { width: 22px; height: 22px; display: block; }
+  nav .links { display: flex; gap: 24px; align-items: center; }
+  nav .links a { color: var(--text); font-size: 14.5px; }
+  @media (max-width: 640px){ nav .links a:not(.gh){ display: none; } }
+
+  /* Hero */
+  .hero { text-align: center; padding: 78px 28px 30px; }
+  .hero .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .hero h1 { font-size: clamp(40px, 6.8vw, 66px); line-height: 1.05; letter-spacing: -.035em; font-weight: 680; margin: 16px 0 0; text-wrap: balance; }
+  .hero .sub { max-width: 700px; margin: 22px auto 0; font-size: clamp(17px, 2.1vw, 21px); color: var(--text-dim); }
+  .cta { display: inline-flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 32px; }
+  .btn { display: inline-block; padding: 13px 26px; border-radius: 999px; font-size: 15px; font-weight: 600; border: 1px solid var(--text); color: var(--text); cursor: pointer; transition: opacity .15s ease; }
+  .btn:hover { opacity: .75; text-decoration: none; }
+  .btn.primary { background: var(--text); color: var(--panel); }
+  @media (prefers-color-scheme: dark){ .btn.primary { color: #000; } }
+
+  .stage { max-width: 1180px; margin: 0 auto; padding: 8px 28px 0; }
 
   .ide {
     display: grid;
@@ -309,7 +322,7 @@
   /* Hover popover */
   #hover {
     position: fixed;
-    z-index: 50;
+    z-index: 60;
     max-width: 280px;
     background: var(--panel);
     border: 1px solid var(--border-strong);
@@ -324,13 +337,18 @@
   #hover .h-name { font-family: var(--mono); }
   #hover .h-meta { color: var(--text-dim); margin-top: 4px; font-size: 12px; }
 
-  /* Docs */
-  .docs { margin-top: 28px; }
+  /* How-to card */
+  .docs { margin: 6px 0 8px; }
   .docs .card { padding: 0; }
-  .docs .inner { padding: 20px 24px; }
+  .docs .inner { padding: 4px 22px; }
+  details.howto-details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 9px; padding: 15px 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  details.howto-details > summary::-webkit-details-marker { display: none; }
+  details.howto-details > summary::before { content: "\25B8"; color: var(--accent); transition: transform .15s; }
+  details.howto-details[open] > summary::before { transform: rotate(90deg); }
+  details.howto-details > p { color: var(--text-dim); margin: 0 0 8px; font-size: 14.5px; padding-bottom: 6px; }
   .docs h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -0.01em; }
   .docs p { color: var(--text-dim); margin: 8px 0; font-size: 14px; }
-  .docs .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 14px; }
+  .docs .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 6px; }
   .docs .step {
     background: var(--panel-2);
     border: 1px solid var(--border);
@@ -348,7 +366,7 @@
     padding: 1px 6px;
   }
   .tour {
-    margin-top: 16px;
+    margin: 16px 0 18px;
     padding: 16px 18px;
     border-radius: 12px;
     background: var(--accent-soft);
@@ -357,20 +375,77 @@
     color: var(--text);
   }
   .tour b { color: var(--accent); }
-  footer { text-align: center; color: var(--text-dim); font-size: 12px; padding: 30px 0 10px; }
+
+  /* Narrative sections */
+  section.band { padding: 80px 0; border-top: 1px solid var(--border); margin-top: 40px; }
+  section.band h2 { font-size: clamp(26px, 4.2vw, 38px); line-height: 1.12; letter-spacing: -.025em; font-weight: 660; text-align: center; max-width: 780px; margin: 0 auto; text-transform: none; padding: 0; border: 0; background: none; color: var(--text); }
+  section.band .lead { max-width: 700px; margin: 16px auto 0; text-align: center; color: var(--text-dim); font-size: 17px; }
+  pre.block { background: #15161c; color: #ececf4; border-radius: 14px; padding: 20px 22px; font-family: var(--mono); font-size: 13px; line-height: 1.6; overflow-x: auto; max-width: 820px; margin: 30px auto 0; white-space: pre; }
+  pre.block .cm { color: #8a8d9a; } pre.block .g { color: #7fd6a0; } pre.block .p { color: #a5b4fc; }
+
+  footer { text-align: center; color: var(--text-dim); font-size: 15px; padding: 56px 28px; border-top: 1px solid var(--border); }
+  footer .name { color: var(--text); font-weight: 600; }
+  footer p + p { margin-top: 10px; }
 </style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <img class="logo" src="logo.svg" alt="Atelier logo" width="34" height="34">
-    <h1>Atelier</h1>
-    <span class="tag">a dependency-free code-intelligence engine, running in your browser</span>
+<noscript><div class="wrap" style="padding:40px 28px;color:#6a6d78">Atelier is a dependency-free code-intelligence engine for a small language by Pavan Nallamothu, written in pure Rust with the standard library only. It provides tokens, a syntax tree, a scoped symbol table, live diagnostics, and the queries an IDE needs: go to definition, find references, hover, and a safe rename, with incremental analysis that stays identical to a full re-analysis. Source: <a href="https://github.com/pavanchow/atelier">github.com/pavanchow/atelier</a>.</div></noscript>
+
+<nav><div class="row">
+  <div class="brand"><img src="logo.svg" alt="Atelier logo" width="22" height="22">Atelier</div>
+  <div class="links"><a href="#sim">Editor</a><a href="#proof">Proof</a><a href="#use">Use it</a><a class="gh" href="https://github.com/pavanchow/atelier">GitHub</a></div>
+</div></nav>
+
+<header class="hero">
+  <img src="logo.svg" alt="Atelier logo" width="72" height="72" style="display:block;margin:0 auto 12px">
+  <p class="eyebrow">Rust · standard library only · code intelligence</p>
+  <h1>Go to definition,<br>in code you can read.</h1>
+  <p class="sub">Atelier is a dependency-free code-intelligence engine for a small language, the semantic layer an editor sits on. Give it source text and a stream of edits and it returns tokens, a syntax tree, a scoped symbol table, live diagnostics, and the queries an IDE needs: go to definition, find references, hover, and a safe rename that refuses to change what a name resolves to. Pure Rust, standard library only, no crates. Click an identifier below and watch it resolve, live in your browser.</p>
+  <div class="cta">
+    <a class="btn primary" href="#sim">Open the editor</a>
+    <a class="btn" href="https://github.com/pavanchow/atelier">View on GitHub</a>
   </div>
-  <a class="repo" href="https://github.com/pavanchow/atelier">View on GitHub</a>
 </header>
 
-<main>
+<div class="stage" id="sim">
+  <div class="docs">
+    <div class="card"><div class="inner">
+      <details class="howto-details">
+        <summary>How to use this playground</summary>
+        <p>Atelier analyzes the code live as you type. Everything below runs entirely on this page with no server and no network calls.</p>
+        <div class="grid">
+          <div class="step">
+            <h4>Go to definition</h4>
+            <p>Click any identifier in the editor. The engine resolves it and paints a colored box around its declaration, then scrolls it into view.</p>
+          </div>
+          <div class="step">
+            <h4>Find references</h4>
+            <p>That same click fills the References panel with every occurrence of the symbol, declaration first. Click a row to jump to it.</p>
+          </div>
+          <div class="step">
+            <h4>Hover for info</h4>
+            <p>Move the pointer over an identifier and hold still. A popover shows its kind, its name, where it is defined, and for a function its parameter count.</p>
+          </div>
+          <div class="step">
+            <h4>Run the program</h4>
+            <p>Press <kbd>Run</kbd>. The evaluator prints the value of each top-level expression statement, one per line, or reports a runtime error with its position.</p>
+          </div>
+          <div class="step">
+            <h4>Read diagnostics</h4>
+            <p>Unresolved names, redefinitions, and parse errors get a red wavy underline in the editor and a line in the Diagnostics panel. Click a diagnostic to jump to it.</p>
+          </div>
+          <div class="step">
+            <h4>Switch files</h4>
+            <p>Pick a file on the left. Each sample highlights a different feature, and your edits stay per file while the page is open.</p>
+          </div>
+        </div>
+        <div class="tour">
+          <b>Guided tour.</b> Start on <b>fib.at</b> and press Run to see it print 55. Now click the <b>fib</b> name inside the recursive body and watch the References panel list the declaration plus both recursive calls. Hover over <b>n</b> to confirm it is a parameter of fib. Switch to <b>scopes.at</b> and click the two different <b>base</b> names to see how an inner parameter shadows the top-level binding. Finally open <b>errors.at</b>, where a duplicate <b>count</b> and an undeclared <b>total</b> light up as diagnostics without you doing anything.
+        </div>
+      </details>
+    </div></div>
+  </div>
+
   <div class="ide">
     <!-- File tree -->
     <div class="card files">
@@ -409,50 +484,48 @@
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Docs -->
-  <section class="docs">
-    <div class="card">
-      <div class="inner">
-        <details class="howto-details">
-        <summary>How to use this playground</summary>
-        <p>Atelier analyzes the code live as you type. Everything below runs entirely on this page with no server and no network calls.</p>
-        <div class="grid">
-          <div class="step">
-            <h4>Go to definition</h4>
-            <p>Click any identifier in the editor. The engine resolves it and paints a blue box around its declaration, then scrolls it into view.</p>
-          </div>
-          <div class="step">
-            <h4>Find references</h4>
-            <p>That same click fills the References panel with every occurrence of the symbol, declaration first. Click a row to jump to it.</p>
-          </div>
-          <div class="step">
-            <h4>Hover for info</h4>
-            <p>Move the pointer over an identifier and hold still. A popover shows its kind, its name, where it is defined, and for a function its parameter count.</p>
-          </div>
-          <div class="step">
-            <h4>Run the program</h4>
-            <p>Press <kbd>Run</kbd>. The evaluator prints the value of each top-level expression statement, one per line, or reports a runtime error with its position.</p>
-          </div>
-          <div class="step">
-            <h4>Read diagnostics</h4>
-            <p>Unresolved names, redefinitions, and parse errors get a red wavy underline in the editor and a line in the Diagnostics panel. Click a diagnostic to jump to it.</p>
-          </div>
-          <div class="step">
-            <h4>Switch files</h4>
-            <p>Pick a file on the left. Each sample highlights a different feature, and your edits stay per file while the page is open.</p>
-          </div>
-        </div>
-        <div class="tour">
-          <b>Guided tour.</b> Start on <b>fib.at</b> and press Run to see it print 55. Now click the <b>fib</b> name inside the recursive body and watch the References panel list the declaration plus both recursive calls. Hover over <b>n</b> to confirm it is a parameter of fib. Switch to <b>scopes.at</b> and click the two different <b>base</b> names to see how an inner parameter shadows the top-level binding. Finally open <b>errors.at</b>, where a duplicate <b>count</b> and an undeclared <b>total</b> light up as diagnostics without you doing anything.
-        </div>
-        </details>
-      </div>
-    </div>
-  </section>
+<section class="band" id="proof"><div class="wrap">
+  <h2>Two resolvers, one answer</h2>
+  <p class="lead">Atelier proves its headline claims against independent oracles over many random, adversarial programs, rather than asserting them. The generator emits shadowing, cross-scope references, redefinitions, hoisted forward references, nested scopes, and unicode identifiers.</p>
+  <pre class="block"><span class="cm"># navigation, incremental, diagnostics, and rename gates, pushed harder</span>
+$ ATELIER_FUZZ_OPS=2000 cargo test --release
 
-  <footer>Atelier playground. A teaching reimplementation of the Rust engine.</footer>
-</main>
+<span class="cm"># go to definition and find references must match a separate</span>
+<span class="cm"># full-program scope walk on every symbol of every program</span>
+<span class="g">navigation: two independent resolvers agree on every symbol</span>
+
+<span class="cm"># after a random sequence of edits applied incrementally, the tokens,</span>
+<span class="cm"># tree, symbol table, and diagnostics equal a full from-scratch analysis</span>
+<span class="g">incremental output is identical to a full re-analysis</span>
+
+<span class="cm"># a rename to a fresh name never changes name resolution;</span>
+<span class="cm"># an unsafe rename that would capture or dangle a name is refused</span>
+<span class="g">rename is safe: accepted renames resolve identically, unsafe ones refused</span></pre>
+  <p class="lead" style="margin-top:26px">Incremental work is an optimization, never a different answer. Two independent resolvers agreeing is real cross-validation, not a restatement, and the rename in this editor is the same one the tests hold to that bar.</p>
+</div></section>
+
+<section class="band" id="use"><div class="wrap">
+  <h2>Use it</h2>
+  <pre class="block"><span class="cm"># build, test, and take the built-in tour of every feature</span>
+cargo build --release
+cargo test
+./target/release/atelier demo
+
+<span class="cm"># the CLI works on any file; a position is a byte offset or 1-based line:col</span>
+atelier analyze path/to/file        <span class="cm"># print diagnostics</span>
+atelier def     path/to/file 3:5    <span class="cm"># definition of the symbol at 3:5</span>
+atelier refs    path/to/file 3:5    <span class="cm"># every reference to that symbol</span>
+atelier hover   path/to/file 3:5    <span class="cm"># symbol info at that position</span>
+atelier rename  path/to/file 3:5 n  <span class="cm"># rename the symbol at 3:5 to n</span>
+atelier run     path/to/file        <span class="cm"># evaluate the program</span></pre>
+</div></section>
+
+<footer>
+  <p>Atelier is MIT licensed. Source, tests, and the design notes are on <a href="https://github.com/pavanchow/atelier">GitHub</a>.</p>
+  <p>By <span class="name">Pavan Nallamothu</span>.</p>
+</footer>
 
 <div id="hover"></div>
 
