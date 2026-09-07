@@ -1,3 +1,5 @@
+<img src="docs/logo.svg" alt="Atelier logo" width="96">
+
 # Atelier
 
 Atelier is a dependency-free code-intelligence engine for a small language. It is

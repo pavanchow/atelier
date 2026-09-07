@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier Playground</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   /* ---- Base theme (light). Defined FIRST, before the dark @media block. ---- */
   :root {
@@ -94,7 +95,12 @@
     z-index: 20;
     backdrop-filter: saturate(180%) blur(12px);
   }
-  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img.logo { width: 34px; height: 34px; display: block; }
+  .docs details.howto-details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .docs details.howto-details > summary::-webkit-details-marker { display: none; }
+  .docs details.howto-details > summary::before { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); transition: transform .2s; flex: none; }
+  .docs details.howto-details[open] > summary::before { transform: rotate(45deg); }
   .brand h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
   .brand .tag { font-size: 13px; color: var(--text-dim); }
   header a.repo {
@@ -357,6 +363,7 @@
 <body>
 <header>
   <div class="brand">
+    <img class="logo" src="logo.svg" alt="Atelier logo" width="34" height="34">
     <h1>Atelier</h1>
     <span class="tag">a dependency-free code-intelligence engine, running in your browser</span>
   </div>
@@ -407,7 +414,8 @@
   <section class="docs">
     <div class="card">
       <div class="inner">
-        <h3>How to use this playground</h3>
+        <details class="howto-details">
+        <summary>How to use this playground</summary>
         <p>Atelier analyzes the code live as you type. Everything below runs entirely on this page with no server and no network calls.</p>
         <div class="grid">
           <div class="step">
@@ -438,6 +446,7 @@
         <div class="tour">
           <b>Guided tour.</b> Start on <b>fib.at</b> and press Run to see it print 55. Now click the <b>fib</b> name inside the recursive body and watch the References panel list the declaration plus both recursive calls. Hover over <b>n</b> to confirm it is a parameter of fib. Switch to <b>scopes.at</b> and click the two different <b>base</b> names to see how an inner parameter shadows the top-level binding. Finally open <b>errors.at</b>, where a duplicate <b>count</b> and an undeclared <b>total</b> light up as diagnostics without you doing anything.
         </div>
+        </details>
       </div>
     </div>
   </section>
