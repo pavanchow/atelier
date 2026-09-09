@@ -3,25 +3,97 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atelier: a dependency-free code-intelligence engine in Rust</title>
-<meta name="description" content="Atelier by Pavan Nallamothu: a dependency-free code-intelligence engine for a small language, the semantic layer an editor sits on. Give it source and a stream of edits and it returns tokens, a syntax tree, a scoped symbol table, live diagnostics, and IDE queries: go to definition, find references, hover, and a safe rename. Pure Rust, standard library only.">
-<meta name="author" content="Pavan Nallamothu (pavanchow)">
-<meta name="keywords" content="code intelligence, language server, go to definition, find references, rename refactor, incremental analysis, symbol table, lexer, parser, recursive descent, name resolution, IDE tooling, Rust, no dependencies, standard library, Pavan Nallamothu, pavanchow">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<title>Atelier: code-intelligence engine in Rust | Pavan Nallamothu</title>
+<meta name="description" content="Atelier is a dependency-free code-intelligence engine in Rust: go to definition, find references, live diagnostics, and safe rename, the layer an editor sits on. By Pavan Nallamothu.">
+<meta name="author" content="Pavan Nallamothu">
+<meta name="keywords" content="atelier, atelier rust, code intelligence engine, language server, go to definition, find references, rename refactor, incremental analysis, scoped symbol table, name resolution, live diagnostics, IDE tooling, build a language server, Rust standard library only, Pavan Nallamothu, pavanchow">
 <link rel="canonical" href="https://pavanchow.github.io/atelier/">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="author" href="https://github.com/pavanchow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Atelier: a dependency-free code-intelligence engine in Rust">
-<meta property="og:description" content="The semantic tooling an editor sits on: tokens, a syntax tree, a scoped symbol table, live diagnostics, go to definition, find references, hover, and a safe rename. Pure Rust, standard library only. By Pavan Nallamothu.">
+<meta property="og:site_name" content="Pavan Nallamothu">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Atelier: code-intelligence engine in Rust | Pavan Nallamothu">
+<meta property="og:description" content="The semantic tooling an editor sits on: tokens, a syntax tree, a scoped symbol table, live diagnostics, go to definition, find references, hover, and a safe rename. Pure Rust, standard library only.">
 <meta property="og:url" content="https://pavanchow.github.io/atelier/">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Atelier: a dependency-free code-intelligence engine in Rust">
+<meta property="og:image" content="https://pavanchow.github.io/atelier/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Atelier by Pavan Nallamothu">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Atelier: code-intelligence engine in Rust | Pavan Nallamothu">
 <meta name="twitter:description" content="Click an identifier and watch it resolve. Go to definition, find references, live diagnostics, and a safe rename, in code you can read in an afternoon.">
+<meta name="twitter:image" content="https://pavanchow.github.io/atelier/og-image.png">
+<meta name="twitter:creator" content="@pavanchow">
+<meta name="twitter:site" content="@pavanchow">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Atelier","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","softwareVersion":"0.1.0","description":"Atelier is a dependency-free code-intelligence engine for a small language, written in pure Rust with the standard library only. It provides a lexer, parser, a scoped symbol table, live diagnostics, and IDE queries including go to definition, find references, hover, a safe rename-symbol refactor, and incremental re-analysis that stays identical to a full re-analysis.","url":"https://pavanchow.github.io/atelier/","author":{"@type":"Person","name":"Pavan Nallamothu"},"programmingLanguage":"Rust","codeRepository":"https://github.com/pavanchow/atelier","license":"https://opensource.org/licenses/MIT"}
-</script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Person","name":"Pavan Nallamothu","alternateName":"pavanchow","url":"https://github.com/pavanchow","sameAs":["https://github.com/pavanchow","https://hackerone.com/pavanchow"]}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://pavanchow.github.io/atelier/#software",
+      "name": "Atelier",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "description": "Atelier is a dependency-free code-intelligence engine for a small language, written in pure Rust with the standard library only. It provides a lexer, parser, a scoped symbol table, live diagnostics, and IDE queries including go to definition, find references, hover, a safe rename-symbol refactor, and incremental re-analysis that stays identical to a full re-analysis.",
+      "url": "https://pavanchow.github.io/atelier/",
+      "image": "https://pavanchow.github.io/atelier/og-image.png",
+      "softwareVersion": "0.1.0",
+      "programmingLanguage": "Rust",
+      "codeRepository": "https://github.com/pavanchow/atelier",
+      "license": "https://opensource.org/licenses/MIT",
+      "datePublished": "2026-08-21",
+      "author": { "@id": "https://github.com/pavanchow#person" },
+      "publisher": { "@id": "https://github.com/pavanchow#person" },
+      "keywords": "code intelligence engine, language server, go to definition, find references, safe rename, incremental analysis, scoped symbol table, name resolution",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "featureList": [
+        "Lexer and parser producing tokens and a syntax tree",
+        "Scoped symbol table with name resolution",
+        "Live diagnostics as source is edited",
+        "Go to definition, find references, and hover queries",
+        "Safe rename-symbol refactor that preserves resolution",
+        "Incremental re-analysis identical to a full re-analysis"
+      ]
+    },
+    {
+      "@type": "Person",
+      "@id": "https://github.com/pavanchow#person",
+      "name": "Pavan Nallamothu",
+      "alternateName": "pavanchow",
+      "url": "https://github.com/pavanchow",
+      "jobTitle": "Software Engineer and Security Researcher",
+      "knowsAbout": ["Rust", "code intelligence", "language servers", "parsers", "name resolution", "IDE tooling", "compilers"],
+      "sameAs": ["https://github.com/pavanchow", "https://hackerone.com/pavanchow"]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://pavanchow.github.io/atelier/#website",
+      "name": "Atelier by Pavan Nallamothu",
+      "url": "https://pavanchow.github.io/atelier/",
+      "author": { "@id": "https://github.com/pavanchow#person" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Pavan Nallamothu", "item": "https://github.com/pavanchow" },
+        { "@type": "ListItem", "position": 2, "name": "Atelier", "item": "https://pavanchow.github.io/atelier/" }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://pavanchow.github.io/atelier/#webpage",
+      "url": "https://pavanchow.github.io/atelier/",
+      "name": "Atelier: code-intelligence engine in Rust | Pavan Nallamothu",
+      "isPartOf": { "@id": "https://pavanchow.github.io/atelier/#website" },
+      "about": { "@id": "https://pavanchow.github.io/atelier/#software" },
+      "author": { "@id": "https://github.com/pavanchow#person" },
+      "inLanguage": "en"
+    }
+  ]
+}
 </script>
 <style>
   /* ---- Base theme (light). Defined FIRST, before the dark @media block. ---- */
@@ -596,7 +668,18 @@ atelier run     path/to/file        <span class="cm"># evaluate the program</spa
 
 <footer>
   <p>Atelier is MIT licensed. Source, tests, and the design notes are on <a href="https://github.com/pavanchow/atelier">GitHub</a>.</p>
-  <p>By <span class="name">Pavan Nallamothu</span>.</p>
+  <nav class="moretools" aria-label="More open-source tools by Pavan Nallamothu" style="margin:28px auto 0;max-width:760px">
+    <p style="font-weight:600;margin-bottom:10px">More open-source tools by Pavan Nallamothu</p>
+    <p style="font-size:14.5px;line-height:1.9">
+      <a href="https://pavanchow.github.io/alchemist/">Alchemist, a compiler that lowers a small language to bytecode and runs it on a VM</a> &middot;
+      <a href="https://pavanchow.github.io/anvil/">Anvil, a compiler backend with a graph coloring register allocator</a> &middot;
+      <a href="https://pavanchow.github.io/unweave/">Unweave, an EVM bytecode disassembler in Rust</a> &middot;
+      <a href="https://pavanchow.github.io/archipelago/">Archipelago, a dependency-free distributed file system</a> &middot;
+      <a href="https://pavanchow.github.io/aurora/">Aurora, an amnesic RAM-only aarch64 kernel</a> &middot;
+      <a href="https://github.com/pavanchow">All projects on GitHub (github.com/pavanchow)</a>
+    </p>
+  </nav>
+  <p style="margin-top:24px">By <span class="name">Pavan Nallamothu</span>.</p>
 </footer>
 
 <div id="hover"></div>
