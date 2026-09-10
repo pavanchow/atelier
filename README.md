@@ -12,6 +12,8 @@ standard library only, no crates, no build scripts, edition 2021.
 
 **[Live demo](https://pavanchow.github.io/atelier/)** · MIT licensed · pure Rust
 
+Built from scratch by [Pavan Nallamothu](https://pavanchow.github.io/) ([LinkedIn](https://www.linkedin.com/in/pavanchow/), [GitHub](https://github.com/pavanchow)).
+
 ## The gap it fills
 
 Real language servers are large and pull in large dependency trees. That makes
