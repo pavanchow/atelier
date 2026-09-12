@@ -6,7 +6,7 @@
 //! which keeps the model simple and predictable. Running a program prints the
 //! value of each top level expression statement.
 
-use crate::ast::*;
+use crate::ast::{FnDecl, Program, StmtKind, Block, Expr, ExprKind, UnOp, BinOp};
 use crate::span::Span;
 use std::collections::HashMap;
 

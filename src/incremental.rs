@@ -18,7 +18,7 @@
 //! [`crate::parser::ParseOutput::truncated`] and the region is extended to
 //! absorb that statement before reparsing.
 
-use crate::ast::*;
+use crate::ast::{Stmt, Program, Ident, StmtKind, LetStmt, FnDecl, Block, Expr, ExprKind};
 use crate::diagnostics::{self, Diagnostic};
 use crate::lexer::{lex_at, Token};
 use crate::parser::{parse_items, ItemParse};
@@ -36,8 +36,8 @@ struct Unit {
 impl Unit {
     fn shifted(&self, delta: i64) -> Unit {
         Unit {
-            lo: (self.lo as i64 + delta) as u32,
-            hi: (self.hi as i64 + delta) as u32,
+            lo: (i64::from(self.lo) + delta) as u32,
+            hi: (i64::from(self.hi) + delta) as u32,
             stmt: shift_stmt(&self.stmt, delta),
             tokens: self.tokens.iter().map(|t| t.shifted(delta)).collect(),
             diags: self
@@ -81,23 +81,28 @@ impl Analysis {
         a
     }
 
+    #[must_use]
     pub fn text(&self) -> &str {
         &self.text
     }
 
+    #[must_use]
     pub fn tokens(&self) -> &[Token] {
         &self.tokens
     }
 
+    #[must_use]
     pub fn program(&self) -> &Program {
         &self.program
     }
 
+    #[must_use]
     pub fn symbols(&self) -> &SymbolTable {
         &self.symbols
     }
 
     /// All diagnostics (parse and resolution) in a stable, sorted order.
+    #[must_use]
     pub fn diagnostics(&self) -> &[Diagnostic] {
         &self.diagnostics
     }
@@ -110,7 +115,7 @@ impl Analysis {
             "edit out of bounds"
         );
         let (start_us, end_us) = (start as usize, end as usize);
-        let delta = replacement.len() as i64 - (end - start) as i64;
+        let delta = replacement.len() as i64 - i64::from(end - start);
 
         let mut new_text = String::with_capacity((self.text.len() as i64 + delta) as usize);
         new_text.push_str(&self.text[..start_us]);
@@ -153,7 +158,7 @@ impl Analysis {
         // Candidate stop boundaries in new text coordinates.
         let boundaries: Vec<u32> = suffix
             .iter()
-            .map(|u| (u.lo as i64 + delta) as u32)
+            .map(|u| (i64::from(u.lo) + delta) as u32)
             .chain(std::iter::once(text_len))
             .collect();
 
@@ -177,7 +182,7 @@ impl Analysis {
         let mut new_units = prefix;
         new_units.extend(region_units);
         for unit in suffix.into_iter().skip(k) {
-            debug_assert!((unit.lo as i64 + delta) as u32 >= stop);
+            debug_assert!((i64::from(unit.lo) + delta) as u32 >= stop);
             new_units.push(unit.shifted(delta));
         }
 

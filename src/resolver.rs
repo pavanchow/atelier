@@ -13,7 +13,7 @@
 //! together with the binding it resolves to, which is what the IDE queries in
 //! [`crate::query`] read.
 
-use crate::ast::*;
+use crate::ast::{Program, Stmt, Expr, Ident, StmtKind, Block, ExprKind};
 use crate::diagnostics::{DiagKind, Diagnostic};
 use crate::span::Span;
 
@@ -25,6 +25,7 @@ pub enum BindingKind {
 }
 
 impl BindingKind {
+    #[must_use]
     pub fn describe(self) -> &'static str {
         match self {
             BindingKind::Fn => "function",
@@ -69,6 +70,7 @@ struct Resolver {
 }
 
 /// Resolve a whole program into a symbol table.
+#[must_use]
 pub fn resolve(program: &Program) -> SymbolTable {
     let mut r = Resolver {
         table: SymbolTable::default(),

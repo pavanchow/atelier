@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // text lengths and offsets are bounded by document size
+
 //! The `atelier` command line tool.
 //!
 //! Subcommands:

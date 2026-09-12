@@ -8,7 +8,7 @@
 //! a tautology. The navigation gate asserts the two agree on every symbol of
 //! every random program.
 
-use crate::ast::*;
+use crate::ast::{Program, Stmt, Expr, Ident, StmtKind, ExprKind};
 use crate::span::Span;
 use std::collections::BTreeMap;
 
@@ -30,6 +30,7 @@ struct Scope {
     seq: Vec<Decl>,
 }
 
+#[must_use]
 pub fn resolve_program(program: &Program) -> RefMap {
     let mut map = RefMap::new();
     let mut env: Vec<Scope> = Vec::new();

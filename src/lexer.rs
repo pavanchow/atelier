@@ -51,6 +51,7 @@ pub struct Token {
 }
 
 impl Token {
+    #[must_use]
     pub fn shifted(&self, delta: i64) -> Token {
         Token {
             kind: self.kind,
@@ -81,11 +82,13 @@ fn is_ident_continue(c: char) -> bool {
 }
 
 /// Lex a full source string into tokens (excluding any end marker).
+#[must_use]
 pub fn lex(text: &str) -> Vec<Token> {
     lex_at(text, 0)
 }
 
 /// Lex `text` as if it began at absolute byte offset `base`. Spans are absolute.
+#[must_use]
 pub fn lex_at(text: &str, base: u32) -> Vec<Token> {
     let bytes = text.as_bytes();
     let mut i = 0usize;

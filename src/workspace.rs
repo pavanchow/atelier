@@ -20,6 +20,7 @@ pub enum RunError {
 }
 
 impl Workspace {
+    #[must_use]
     pub fn new() -> Workspace {
         Workspace::default()
     }
@@ -40,6 +41,7 @@ impl Workspace {
         }
     }
 
+    #[must_use]
     pub fn file(&self, name: &str) -> Option<&Analysis> {
         self.files.get(name)
     }

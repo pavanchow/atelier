@@ -60,6 +60,7 @@ impl Ord for Diagnostic {
 
 /// Sort diagnostics into a stable, deterministic order. Every producer routes
 /// through here so the same program always yields the same diagnostic sequence.
+#[must_use]
 pub fn sorted(mut diags: Vec<Diagnostic>) -> Vec<Diagnostic> {
     diags.sort();
     diags

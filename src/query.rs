@@ -41,6 +41,7 @@ fn occurrence_at(analysis: &Analysis, pos: u32) -> Option<&Occurrence> {
 
 impl Analysis {
     /// Resolve the definition of the symbol at `pos`.
+    #[must_use]
     pub fn go_to_definition(&self, pos: u32) -> Option<Definition> {
         let occ = occurrence_at(self, pos)?;
         let id = occ.binding?;
@@ -54,6 +55,7 @@ impl Analysis {
 
     /// Every reference to the symbol at `pos`, including its declaration, sorted
     /// by position.
+    #[must_use]
     pub fn find_references(&self, pos: u32) -> Vec<Reference> {
         let Some(occ) = occurrence_at(self, pos) else {
             return Vec::new();
@@ -76,6 +78,7 @@ impl Analysis {
     }
 
     /// Hover information for the symbol at `pos`.
+    #[must_use]
     pub fn hover(&self, pos: u32) -> Option<Hover> {
         let occ = occurrence_at(self, pos)?;
         let id = occ.binding?;

@@ -6,6 +6,7 @@ pub struct Rng {
 }
 
 impl Rng {
+    #[must_use]
     pub fn new(seed: u64) -> Rng {
         Rng {
             state: seed.wrapping_add(0x9E37_79B9_7F4A_7C15),

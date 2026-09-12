@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // span offsets are bounded by document size
+
 //! The correctness gates. These are the load bearing tests: they assert the
 //! headline claims of the engine against independent oracles over many random
 //! programs. Sizes are bounded for CI and controllable via `ATELIER_FUZZ_OPS`.

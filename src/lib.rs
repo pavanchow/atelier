@@ -1,3 +1,6 @@
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)] // the error enums are the documented error surface
+#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_possible_wrap)] // span offsets and line indices are bounded by document size
+
 //! Atelier: a dependency-free semantic tooling layer for a small language.
 //!
 //! The crate is organised as a pipeline: [`lexer`] turns text into tokens,

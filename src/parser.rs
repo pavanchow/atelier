@@ -7,7 +7,7 @@
 //! which the incremental layer uses to decide when a reused suffix has merged
 //! into the edited region.
 
-use crate::ast::*;
+use crate::ast::{Program, Stmt, StmtKind, FnDecl, LetStmt, Ident, Block, Expr, BinOp, UnOp, ExprKind};
 use crate::diagnostics::{DiagKind, Diagnostic};
 use crate::lexer::{lex_at, Token, TokenKind};
 use crate::span::Span;
@@ -33,6 +33,7 @@ pub struct ItemParse {
 }
 
 /// Lex and parse a whole source string.
+#[must_use]
 pub fn parse(text: &str) -> ParseOutput {
     let tokens = lex_at(text, 0);
     parse_tokens(&tokens)
@@ -40,6 +41,7 @@ pub fn parse(text: &str) -> ParseOutput {
 
 /// Parse a token slice into per statement groups. `truncated` is true when the
 /// stream ended inside a construct.
+#[must_use]
 pub fn parse_items(tokens: &[Token]) -> (Vec<ItemParse>, bool) {
     let mut p = Parser {
         tokens,
@@ -52,6 +54,7 @@ pub fn parse_items(tokens: &[Token]) -> (Vec<ItemParse>, bool) {
 }
 
 /// Parse a token slice whose spans are already absolute.
+#[must_use]
 pub fn parse_tokens(tokens: &[Token]) -> ParseOutput {
     let (groups, truncated) = parse_items(tokens);
     let mut program = Vec::with_capacity(groups.len());
@@ -161,7 +164,7 @@ impl<'t> Parser<'t> {
         while !self.at_end() {
             let tok_start = self.pos;
             let diag_start = self.diagnostics.len();
-            let stmt = self.parse_top_stmt();
+            let stmt = Some(self.parse_top_stmt());
             if self.pos == tok_start {
                 // Guarantee progress on an unrecognised token.
                 let span = self.cur_span();
@@ -187,7 +190,7 @@ impl<'t> Parser<'t> {
         groups
     }
 
-    fn parse_top_stmt(&mut self) -> Option<Stmt> {
+    fn parse_top_stmt(&mut self) -> Stmt {
         match self.peek_kind() {
             Some(TokenKind::Fn) => self.parse_fn(),
             Some(TokenKind::Let) => self.parse_let(),
@@ -195,7 +198,7 @@ impl<'t> Parser<'t> {
         }
     }
 
-    fn parse_fn(&mut self) -> Option<Stmt> {
+    fn parse_fn(&mut self) -> Stmt {
         let start = self.cur_span().start;
         self.bump(); // fn
         let name = self.parse_ident_or_missing("a function name");
@@ -214,13 +217,13 @@ impl<'t> Parser<'t> {
         self.expect(TokenKind::RParen, "`)`");
         let body = self.parse_block();
         let end = body.span.end;
-        Some(Stmt {
+        Stmt {
             kind: StmtKind::Fn(FnDecl { name, params, body }),
             span: Span::new(start, end),
-        })
+        }
     }
 
-    fn parse_let(&mut self) -> Option<Stmt> {
+    fn parse_let(&mut self) -> Stmt {
         let start = self.cur_span().start;
         self.bump(); // let
         let name = self.parse_ident_or_missing("a variable name");
@@ -228,13 +231,13 @@ impl<'t> Parser<'t> {
         let value = self.parse_expr();
         let semi = self.expect(TokenKind::Semi, "`;`");
         let end = semi.map_or(value.span.end, |s| s.end);
-        Some(Stmt {
+        Stmt {
             kind: StmtKind::Let(LetStmt { name, value }),
             span: Span::new(start, end),
-        })
+        }
     }
 
-    fn parse_expr_stmt_top(&mut self) -> Option<Stmt> {
+    fn parse_expr_stmt_top(&mut self) -> Stmt {
         let expr = self.parse_expr();
         let start = expr.span.start;
         let semi = self.expect(TokenKind::Semi, "`;`");
@@ -242,10 +245,10 @@ impl<'t> Parser<'t> {
         if semi.is_none() {
             self.recover_to_stmt_boundary();
         }
-        Some(Stmt {
+        Stmt {
             kind: StmtKind::Expr(expr),
             span: Span::new(start, end),
-        })
+        }
     }
 
     fn recover_to_stmt_boundary(&mut self) {
@@ -319,14 +322,10 @@ impl<'t> Parser<'t> {
             }
             match self.peek_kind() {
                 Some(TokenKind::Fn) => {
-                    if let Some(s) = self.parse_fn() {
-                        stmts.push(s);
-                    }
+                    stmts.push(self.parse_fn());
                 }
                 Some(TokenKind::Let) => {
-                    if let Some(s) = self.parse_let() {
-                        stmts.push(s);
-                    }
+                    stmts.push(self.parse_let());
                 }
                 _ => {
                     let before = self.pos;

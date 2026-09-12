@@ -8,34 +8,40 @@ pub struct Span {
 }
 
 impl Span {
+    #[must_use]
     pub fn new(start: u32, end: u32) -> Span {
         Span { start, end }
     }
 
+    #[must_use]
     pub fn len(&self) -> u32 {
         self.end - self.start
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.start == self.end
     }
 
+    #[must_use]
     pub fn contains(&self, offset: u32) -> bool {
         offset >= self.start && offset < self.end
     }
 
     /// True when `offset` is inside the span or exactly at its edges. Queries use
     /// this so a click at the end of an identifier still selects it.
+    #[must_use]
     pub fn touches(&self, offset: u32) -> bool {
         offset >= self.start && offset <= self.end
     }
 
     /// Shift both ends by a signed delta. Used when reusing unchanged AST after
     /// an edit inserts or removes text earlier in the file.
+    #[must_use]
     pub fn shifted(self, delta: i64) -> Span {
         Span {
-            start: (self.start as i64 + delta) as u32,
-            end: (self.end as i64 + delta) as u32,
+            start: (i64::from(self.start) + delta) as u32,
+            end: (i64::from(self.end) + delta) as u32,
         }
     }
 }
@@ -54,6 +60,7 @@ pub struct LineCol {
 }
 
 /// Convert a byte offset into a one based line and column.
+#[must_use]
 pub fn offset_to_linecol(text: &str, offset: u32) -> LineCol {
     let offset = offset.min(text.len() as u32) as usize;
     let mut line = 1u32;
@@ -70,6 +77,7 @@ pub fn offset_to_linecol(text: &str, offset: u32) -> LineCol {
 }
 
 /// Convert a one based line and column into a byte offset, clamped to the text.
+#[must_use]
 pub fn linecol_to_offset(text: &str, line: u32, col: u32) -> u32 {
     let mut cur_line = 1u32;
     let mut idx = 0usize;

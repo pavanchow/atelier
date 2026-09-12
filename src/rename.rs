@@ -39,6 +39,7 @@ pub struct Rename {
 /// True when `name` lexes to exactly one identifier token covering the whole
 /// string. Rejects empty names, keywords, numbers, and anything with extra
 /// characters or whitespace.
+#[must_use]
 pub fn is_valid_identifier(name: &str) -> bool {
     let toks = lex(name);
     toks.len() == 1
